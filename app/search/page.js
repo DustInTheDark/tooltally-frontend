@@ -17,21 +17,21 @@ export default function SearchPage() {
 
   const sampleProducts = [
     {
-      productTitle: 'Hammer',
-      price: '9.99',
-      vendorName: 'Acme Tools',
+      productTitle: `${query} Pro Max 3000`,
+      price: '99.99',
+      vendorName: 'Acme Corp',
       buyUrl: '#',
     },
     {
-      productTitle: 'Drill',
-      price: '49.99',
-      vendorName: 'Tool World',
+      productTitle: `${query} Deluxe Set`,
+      price: '59.99',
+      vendorName: 'Tools R Us',
       buyUrl: '#',
     },
     {
-      productTitle: 'Saw',
-      price: '24.99',
-      vendorName: 'Builder Supplies',
+      productTitle: `${query} Starter Kit`,
+      price: '29.99',
+      vendorName: 'Basic Tools',
       buyUrl: '#',
     },
   ];
