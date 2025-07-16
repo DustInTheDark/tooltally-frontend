@@ -2,6 +2,7 @@
 
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
+import Link from 'next/link';
 import ProductCard from '@/components/ProductCard';
 
 export default function SearchPage() {
@@ -42,12 +43,12 @@ export default function SearchPage() {
   return (
     <div className="px-4 py-8">
       <div className="mb-6 flex flex-col gap-4">
-        <a
+        <Link
           href="/"
           className="self-start rounded bg-gray-100 px-3 py-1 text-sm hover:bg-gray-200"
         >
           &larr; Back
-        </a>
+        </Link>
         <form
           onSubmit={handleSubmit}
           className="flex w-full flex-col gap-4 sm:flex-row"
