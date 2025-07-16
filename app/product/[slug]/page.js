@@ -61,3 +61,7 @@ export default async function ProductPage({ params, searchParams }) {
         </div>
       ) : (
         <p className="text-lg">Product not found.</p>
+      )}
+    </div>
+  );
+}
