@@ -50,9 +50,10 @@ export default function SearchPage() {
   return (
     <div className="px-4 py-8">
       <div className="mb-6 flex flex-col gap-4">
-        <Link>
+        <Link
           href="/"
-          className="self-start rounded bg-gray-100 px-3 py-1 text-sm hover:bg-gray-200"␊
+          className="self-start rounded bg-gray-100 px-3 py-1 text-sm hover:bg-gray-200"
+        >
           &larr; Back
         </Link>
         <form
