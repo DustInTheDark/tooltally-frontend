@@ -7,6 +7,7 @@ export default async function ProductPage({ params, searchParams }) {
 
   const { slug } = resolvedParams;
   const query = resolvedSearchParams?.q || '';
+  const backUrl = `/search${query ? `?q=${encodeURIComponent(query)}` : ''}`;
 
   const slugify = (str) =>
     str
@@ -39,10 +40,10 @@ export default async function ProductPage({ params, searchParams }) {
 
   return (
     <div className="px-4 py-8">
-      <Link>
-        href={`/search${query ? `?q=${encodeURIComponent(query)}` : ''}`}␊
-        className="mb-6 inline-block rounded bg-gray-100 px-3 py-1 text-sm hover:bg-gray-200"␊
-
+      <Link
+        href={backUrl}
+        className="mb-6 inline-block rounded bg-gray-100 px-3 py-1 text-sm hover:bg-gray-200"
+      >
         &larr; Back to Results
       </Link>
       {product ? (
