@@ -1,11 +1,9 @@
 import Link from 'next/link';
 
 export default async function ProductPage({ params, searchParams }) {
-  // In newer Next.js versions params and searchParams may be async
-  const resolvedParams =
-    typeof params === 'function' ? await params() : params;
-  const resolvedSearchParams =
-    typeof searchParams === 'function' ? await searchParams() : searchParams;
+  // params and searchParams can be Promises in newer Next.js versions
+  const resolvedParams = await params;
+  const resolvedSearchParams = await searchParams;
 
   const { slug } = resolvedParams;
   const query = resolvedSearchParams?.q || '';
@@ -41,11 +39,11 @@ export default async function ProductPage({ params, searchParams }) {
 
   return (
     <div className="px-4 py-8">
-      <Link
-        href={`/search${query ? `?q=${encodeURIComponent(query)}` : ''}`}
-        className="mb-6 inline-block rounded bg-gray-100 px-3 py-1 text-sm hover:bg-gray-200"
-      >
-        &larr; Back to Search
+      <Link>
+        href={`/search${query ? `?q=${encodeURIComponent(query)}` : ''}`}␊
+        className="mb-6 inline-block rounded bg-gray-100 px-3 py-1 text-sm hover:bg-gray-200"␊
+
+        &larr; Back to Results
       </Link>
       {product ? (
         <div className="border rounded p-6 shadow-sm">
