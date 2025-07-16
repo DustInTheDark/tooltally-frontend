@@ -1,36 +1,50 @@
 import Link from 'next/link';
 
-export default function ProductPage({ params }) {
-  const { slug } = params;
+export default async function ProductPage({ params, searchParams }) {
+  // In newer Next.js versions params and searchParams may be async
+  const resolvedParams =
+    typeof params === 'function' ? await params() : params;
+  const resolvedSearchParams =
+    typeof searchParams === 'function' ? await searchParams() : searchParams;
+
+  const { slug } = resolvedParams;
+  const query = resolvedSearchParams?.q || '';
+
+  const slugify = (str) =>
+    str
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, '')
+      .trim()
+      .replace(/\s+/g, '-');
   const products = [
     {
-      slug: 'hammer-acme-corp',
-      productTitle: 'Hammer',
+      productTitle: 'Hammer Pro Max 3000',
       vendorName: 'Acme Corp',
-      price: '19.99',
+      price: '99.99',
       buyUrl: '#',
     },
     {
-      slug: 'drill-tools-r-us',
-      productTitle: 'Drill',
+      productTitle: 'Drill Deluxe Set',
       vendorName: 'Tools R Us',
       price: '59.99',
       buyUrl: '#',
     },
     {
-      slug: 'saw-basic-tools',
-      productTitle: 'Saw',
+      productTitle: 'Saw Starter Kit',
       vendorName: 'Basic Tools',
       price: '29.99',
       buyUrl: '#',
     },
-  ];
+  ].map((p) => ({ ...p, slug: slugify(`${p.productTitle} ${p.vendorName}`) }));
 
   const product = products.find((p) => p.slug === slug);
 
   return (
     <div className="px-4 py-8">
-      <Link href="/search?q=yourQuery" className="mb-6 inline-block rounded bg-gray-100 px-3 py-1 text-sm hover:bg-gray-200">
+      <Link
+        href={`/search${query ? `?q=${encodeURIComponent(query)}` : ''}`}
+        className="mb-6 inline-block rounded bg-gray-100 px-3 py-1 text-sm hover:bg-gray-200"
+      >
         &larr; Back to Search
       </Link>
       {product ? (
@@ -47,7 +61,3 @@ export default function ProductPage({ params }) {
         </div>
       ) : (
         <p className="text-lg">Product not found.</p>
-      )}
-    </div>
-  );
-}
