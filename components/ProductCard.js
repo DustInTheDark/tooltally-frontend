@@ -1,4 +1,18 @@
++28
+-19
+
+import Link from 'next/link';
+
 export default function ProductCard({ productTitle, price, vendorName, buyUrl }) {
+  const slugify = (str) =>
+    str
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, '')
+      .trim()
+      .replace(/\s+/g, '-');
+
+  const slug = slugify(`${productTitle} ${vendorName}`);
+
   return (
     <div className="border rounded p-4 shadow-sm flex flex-col justify-between">
       <div>
@@ -6,14 +20,12 @@ export default function ProductCard({ productTitle, price, vendorName, buyUrl })
         <p className="text-sm text-gray-500">{vendorName}</p>
         <p className="text-xl font-bold mt-2">£{price}</p>
       </div>
-      <a
-        href={buyUrl}
-        target="_blank"
-        rel="noopener noreferrer"
+      <Link
+        href={`/product/${slug}`}
         className="mt-4 inline-block text-center bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
       >
-        Buy Now
-      </a>
+        View Details
+      </Link>
     </div>
   );
 }
