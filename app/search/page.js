@@ -46,7 +46,7 @@ export default function SearchPage() {
       <div className="mb-6 flex flex-col gap-4">
         <LoadingLink
           href="/"
-          className="self-start rounded bg-gray-100 px-3 py-1 text-sm hover:bg-gray-200 dark:text-gray-900 contrast:text-black"
+          className="self-start rounded bg-gray-100 px-3 py-1 text-sm hover:bg-gray-200 dark:text-gray-900 contrast-text"
         >
           &larr; Back
         </LoadingLink>
@@ -59,7 +59,7 @@ export default function SearchPage() {
             placeholder="Search for a tool or material"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full flex-grow rounded-md border p-3 text-gray-900 dark:text-gray-900 contrast:text-black"
+            className="w-full flex-grow rounded-md border p-3 text-gray-900 dark:text-gray-900"
           />
           <button
             type="submit"
