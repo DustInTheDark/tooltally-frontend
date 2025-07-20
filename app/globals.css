@@ -14,3 +14,12 @@ html.contrast .theme-switcher {
   background-color: #000;
   color: #ffeb3b;
 }
+
+html.dark input,
+html.dark select,
+html.dark textarea,
+html.contrast input,
+html.contrast select,
+html.contrast textarea {
+  color: #000;
+}
