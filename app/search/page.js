@@ -74,18 +74,22 @@ export default function SearchPage() {
           <h1 className="mb-6 text-2xl font-semibold">
             Search results for: {initialQuery}
           </h1>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {sampleProducts.map((product) => (
-              <ProductCard
-                key={product.productTitle}
-                productTitle={product.productTitle}
-                price={product.price}
-                vendorName={product.vendorName}
-                buyUrl={product.buyUrl}
-                searchQuery={initialQuery}
-              />
-            ))}
-          </div>
+          {sampleProducts.length > 0 ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {sampleProducts.map((product) => (
+                <ProductCard
+                  key={product.productTitle}
+                  productTitle={product.productTitle}
+                  price={product.price}
+                  vendorName={product.vendorName}
+                  buyUrl={product.buyUrl}
+                  searchQuery={initialQuery}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="text-lg">No products match your search.</p>
+          )}
         </>
       ) : (
         <p className="text-lg">No search term provided.</p>
