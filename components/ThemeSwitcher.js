@@ -6,7 +6,7 @@ export default function ThemeSwitcher() {
 
   return (
     <select
-      className="absolute right-4 top-4 rounded border p-2 bg-white dark:bg-gray-800 dark:text-white contrast:bg-black contrast:text-yellow-400"
+      className="theme-switcher fixed right-4 top-4 z-50 rounded border p-2 bg-white dark:bg-gray-800 dark:text-white"
       value={theme}
       onChange={(e) => setTheme(e.target.value)}
     >
