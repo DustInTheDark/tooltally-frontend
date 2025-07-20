@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import LoadingLink from './LoadingLink';
 
 export default function ProductCard({
   productTitle,
@@ -27,12 +27,12 @@ export default function ProductCard({
         <p className="mt-2 text-xl font-bold">£{price}</p>
       </div>
       {slug ? (
-        <Link
+        <LoadingLink
           href={`/product/${slug}${searchQuery ? `?q=${encodeURIComponent(searchQuery)}` : ''}`}
           className="mt-4 inline-block rounded bg-blue-600 px-4 py-2 text-center text-white hover:bg-blue-700"
         >
           View Details
-        </Link>
+        </LoadingLink>
       ) : (
         <span className="mt-4 inline-block rounded bg-gray-300 px-4 py-2 text-center text-white">View Details</span>
       )}

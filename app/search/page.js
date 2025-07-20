@@ -1,20 +1,21 @@
 'use client';
 
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
-import Link from 'next/link';
+import LoadingLink from '@/components/LoadingLink';
 import ProductCard from '@/components/ProductCard';
+import { useNavigation } from '@/components/NavigationContext';
 
 export default function SearchPage() {
   const searchParams = useSearchParams();
-  const router = useRouter();
+  const { push } = useNavigation();
   const initialQuery = searchParams.get('q')?.trim() || '';
   const [searchTerm, setSearchTerm] = useState(initialQuery);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     const value = searchTerm.trim();
-    router.push(value ? `/search?q=${encodeURIComponent(value)}` : '/search');
+    push(value ? `/search?q=${encodeURIComponent(value)}` : '/search');
   };
 
   const sampleProducts = initialQuery
@@ -43,12 +44,12 @@ export default function SearchPage() {
   return (
     <div className="px-4 py-8">
       <div className="mb-6 flex flex-col gap-4">
-        <Link
+        <LoadingLink
           href="/"
           className="self-start rounded bg-gray-100 px-3 py-1 text-sm hover:bg-gray-200"
         >
           &larr; Back
-        </Link>
+        </LoadingLink>
         <form
           onSubmit={handleSubmit}
           className="flex w-full flex-col gap-4 sm:flex-row"

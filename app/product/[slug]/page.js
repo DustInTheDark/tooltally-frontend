@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import LoadingLink from '@/components/LoadingLink';
 
 export default async function ProductPage({ params, searchParams }) {
   // params and searchParams can be Promises in newer Next.js versions
@@ -62,12 +63,12 @@ export default async function ProductPage({ params, searchParams }) {
 
   return (
     <div className="px-4 py-8">
-      <Link
+      <LoadingLink
         href={backUrl}
         className="mb-6 inline-block rounded bg-gray-100 px-3 py-1 text-sm hover:bg-gray-200"
       >
-        &larr; Back to Results
-      </Link>
+        &larr; Back to Results␊
+      </LoadingLink>
       {product ? (
         <div className="border rounded p-6 shadow-sm">
           <h1 className="text-2xl font-semibold">{product.productTitle}</h1>

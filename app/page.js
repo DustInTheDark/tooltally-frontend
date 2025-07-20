@@ -1,17 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useNavigation } from '@/components/NavigationContext';
 
 export default function Home() {
-  const router = useRouter();
+  const { push } = useNavigation();
   const [query, setQuery] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
     const value = query.trim();
     if (value) {
-      router.push(`/search?q=${encodeURIComponent(value)}`);
+      push(`/search?q=${encodeURIComponent(value)}`);
     }
   };
 
