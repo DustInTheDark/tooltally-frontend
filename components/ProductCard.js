@@ -20,10 +20,12 @@ export default function ProductCard({
       : null;
 
   return (
-    <div className="flex flex-col justify-between rounded border-2 border-gray-300 bg-white p-4 shadow-sm dark:border-gray-600 dark:bg-gray-800">
+    <div
+      className="flex flex-col justify-between rounded-md border-2 border-gray-400 bg-white p-4 shadow-md dark:border-gray-600 dark:bg-gray-800 contrast:border-yellow-400 contrast:bg-black contrast:text-yellow-300"
+    >
       <div>
         <h3 className="text-lg font-semibold">{productTitle}</h3>
-        <p className="text-sm text-gray-500">{vendorName}</p>
+        <p className="text-sm text-gray-500 contrast:text-yellow-300">{vendorName}</p>
         <p className="mt-2 text-xl font-bold">£{price}</p>
       </div>
       {slug ? (
