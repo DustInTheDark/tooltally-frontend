@@ -67,10 +67,10 @@ export default async function ProductPage({ params, searchParams }) {
         href={backUrl}
         className="mb-6 inline-block rounded bg-gray-100 px-3 py-1 text-sm hover:bg-gray-200 dark:text-gray-900 contrast-text"
       >
-        &larr; Back to Results␊
+        &larr; Back to Results
       </LoadingLink>
       {product ? (
-        <div className="border rounded p-6 shadow-sm">
+        <div className="border rounded p-6 shadow-md dark:border-gray-700">
           <h1 className="text-2xl font-semibold">{product.productTitle}</h1>
           <p className="text-sm text-gray-500">{product.vendorName}</p>
           <p className="mt-4 text-xl font-bold">£{product.price}</p>
