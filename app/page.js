@@ -18,7 +18,7 @@ export default function Home() {
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-[600px] text-center">
-        <h1 className="mb-4 text-5xl font-bold">ToolTally</h1>
+        <h1 className="mb-4 text-5xl font-bold">Compare Prices</h1>
         <p className="mb-8 text-lg">
           Compare prices on tools and materials from UK suppliers
         </p>
@@ -32,7 +32,7 @@ export default function Home() {
           />
           <button
             type="submit"
-            className="rounded-md bg-blue-600 p-3 font-medium text-white sm:px-6"
+            className="rounded-md bg-brand-blue p-3 font-medium text-white sm:px-6"
           >
             Compare Now
           </button>

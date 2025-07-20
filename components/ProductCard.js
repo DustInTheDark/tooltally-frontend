@@ -31,7 +31,7 @@ export default function ProductCard({
       {slug ? (
         <LoadingLink
           href={`/product/${slug}${searchQuery ? `?q=${encodeURIComponent(searchQuery)}` : ''}`}
-          className="mt-4 inline-block rounded bg-blue-600 px-4 py-2 text-center text-white hover:bg-blue-700"
+          className="mt-4 inline-block rounded bg-brand-blue px-4 py-2 text-center text-white hover:bg-brand-blue/90"
         >
           View Details
         </LoadingLink>

@@ -3,6 +3,7 @@ import "./globals.css";
 import { NavigationProvider } from "@/components/NavigationContext";
 import { ThemeProvider } from "@/components/ThemeContext";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
+import Header from "@/components/Header";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,6 +27,7 @@ export default function RootLayout({ children }) {
         <ThemeProvider>
           <NavigationProvider>
             <ThemeSwitcher />
+            <Header />
             {children}
           </NavigationProvider>
         </ThemeProvider>

@@ -63,7 +63,7 @@ export default function SearchPage() {
           />
           <button
             type="submit"
-            className="rounded-md bg-blue-600 p-3 font-medium text-white sm:px-6"
+            className="rounded-md bg-brand-blue p-3 font-medium text-white sm:px-6"
           >
             Compare
           </button>

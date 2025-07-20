@@ -76,7 +76,7 @@ export default async function ProductPage({ params, searchParams }) {
           <p className="mt-4 text-xl font-bold">£{product.price}</p>
           <Link
             href={product.buyUrl}
-            className="mt-6 inline-block rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+            className="mt-6 inline-block rounded bg-brand-blue px-4 py-2 text-white hover:bg-brand-blue/90"
           >
             Buy Now
           </Link>
