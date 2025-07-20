@@ -6,7 +6,7 @@ export default async function ProductPage({ params, searchParams }) {
   const resolvedSearchParams = await searchParams;
 
   const { slug } = resolvedParams;
-  const query = resolvedSearchParams?.q || '';
+  const query = resolvedSearchParams?.q?.trim() || '';
   const backUrl = `/search${query ? `?q=${encodeURIComponent(query)}` : ''}`;
 
   const slugify = (str) =>
@@ -15,26 +15,48 @@ export default async function ProductPage({ params, searchParams }) {
       .replace(/[^\w\s-]/g, '')
       .trim()
       .replace(/\s+/g, '-');
-  const products = [
-    {
-      productTitle: 'Hammer Pro Max 3000',
-      vendorName: 'Acme Corp',
-      price: '99.99',
-      buyUrl: '#',
-    },
-    {
-      productTitle: 'Drill Deluxe Set',
-      vendorName: 'Tools R Us',
-      price: '59.99',
-      buyUrl: '#',
-    },
-    {
-      productTitle: 'Saw Starter Kit',
-      vendorName: 'Basic Tools',
-      price: '29.99',
-      buyUrl: '#',
-    },
-  ].map((p) => ({ ...p, slug: slugify(`${p.productTitle} ${p.vendorName}`) }));
+  const products = (query
+    ? [
+        {
+          productTitle: `${query} Pro Max 3000`,
+          vendorName: 'Acme Corp',
+          price: '99.99',
+          buyUrl: '#',
+        },
+        {
+          productTitle: `${query} Deluxe Set`,
+          vendorName: 'Tools R Us',
+          price: '59.99',
+          buyUrl: '#',
+        },
+        {
+          productTitle: `${query} Starter Kit`,
+          vendorName: 'Basic Tools',
+          price: '29.99',
+          buyUrl: '#',
+        },
+      ]
+    : [
+        {
+          productTitle: 'Hammer Pro Max 3000',
+          vendorName: 'Acme Corp',
+          price: '99.99',
+          buyUrl: '#',
+        },
+        {
+          productTitle: 'Drill Deluxe Set',
+          vendorName: 'Tools R Us',
+          price: '59.99',
+          buyUrl: '#',
+        },
+        {
+          productTitle: 'Saw Starter Kit',
+          vendorName: 'Basic Tools',
+          price: '29.99',
+          buyUrl: '#',
+        },
+      ]
+  ).map((p) => ({ ...p, slug: slugify(`${p.productTitle} ${p.vendorName}`) }));
 
   const product = products.find((p) => p.slug === slug);
 
