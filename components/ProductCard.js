@@ -1,6 +1,12 @@
 import Link from 'next/link';
 
-export default function ProductCard({ productTitle, price, vendorName, buyUrl }) {
+export default function ProductCard({
+  productTitle,
+  price,
+  vendorName,
+  buyUrl,
+  searchQuery,
+}) {
   const slugify = (str) =>
     str
       .toLowerCase()
@@ -8,7 +14,10 @@ export default function ProductCard({ productTitle, price, vendorName, buyUrl })
       .trim()
       .replace(/\s+/g, '-');
 
-  const slug = productTitle && vendorName ? slugify(`${productTitle} ${vendorName}`) : null;
+  const slug =
+    productTitle && vendorName
+      ? slugify(`${productTitle} ${vendorName}`)
+      : null;
 
   return (
     <div className="flex flex-col justify-between rounded border p-4 shadow-sm">
@@ -19,7 +28,7 @@ export default function ProductCard({ productTitle, price, vendorName, buyUrl })
       </div>
       {slug ? (
         <Link
-          href={`/product/${slug}`}
+          href={`/product/${slug}${searchQuery ? `?q=${encodeURIComponent(searchQuery)}` : ''}`}
           className="mt-4 inline-block rounded bg-blue-600 px-4 py-2 text-center text-white hover:bg-blue-700"
         >
           View Details

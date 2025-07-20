@@ -81,6 +81,7 @@ export default function SearchPage() {
                 price={product.price}
                 vendorName={product.vendorName}
                 buyUrl={product.buyUrl}
+                searchQuery={initialQuery}
               />
             ))}
           </div>
