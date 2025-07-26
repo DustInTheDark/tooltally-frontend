@@ -6,6 +6,12 @@ import LoadingLink from '@/components/LoadingLink';
 import ProductCard from '@/components/ProductCard';
 import { useNavigation } from '@/components/NavigationContext';
 
+/**
+ * SearchPage displays a list of products based on a search term.
+ * The page includes a search bar at the top for refining the query and
+ * uses the ProductCard component to render each result. Sample data is
+ * rendered until a real API is connected.
+ */
 export default function SearchPage() {
   const searchParams = useSearchParams();
   const { push } = useNavigation();
@@ -18,6 +24,7 @@ export default function SearchPage() {
     push(value ? `/search?q=${encodeURIComponent(value)}` : '/search');
   };
 
+  // Sample products used as placeholders until real data is connected.
   const sampleProducts = initialQuery
     ? [
         {
@@ -46,7 +53,7 @@ export default function SearchPage() {
       <div className="mb-6 flex flex-col gap-4">
         <LoadingLink
           href="/"
-          className="self-start rounded bg-gray-100 px-3 py-1 text-sm hover:bg-gray-200 dark:text-gray-900 contrast-text"
+          className="self-start rounded-md bg-brand-light px-3 py-1 text-sm text-brand-dark hover:bg-gray-200 dark:text-gray-900 contrast-text"
         >
           &larr; Back
         </LoadingLink>
@@ -59,11 +66,11 @@ export default function SearchPage() {
             placeholder="Search for a tool or material"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full flex-grow rounded-md border p-3 text-gray-900 dark:text-gray-900"
+            className="w-full flex-grow rounded-md border border-brand-slate p-3 text-brand-dark"
           />
           <button
             type="submit"
-            className="rounded-md bg-brand-blue p-3 font-medium text-white sm:px-6"
+            className="rounded-md bg-brand-orange px-6 py-3 font-medium text-white hover:bg-brand-orange/90"
           >
             Compare
           </button>
@@ -71,11 +78,11 @@ export default function SearchPage() {
       </div>
       {initialQuery ? (
         <>
-          <h1 className="mb-6 text-2xl font-semibold">
-            Search results for: {initialQuery}
+          <h1 className="mb-6 text-2xl font-semibold text-brand-dark">
+            Search results for: <span className="italic">{initialQuery}</span>
           </h1>
           {sampleProducts.length > 0 ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {sampleProducts.map((product) => (
                 <ProductCard
                   key={product.productTitle}
@@ -88,11 +95,13 @@ export default function SearchPage() {
               ))}
             </div>
           ) : (
-            <p className="text-lg">No products match your search.</p>
+            <p className="text-lg text-brand-dark">
+              No products match your search.
+            </p>
           )}
         </>
       ) : (
-        <p className="text-lg">No search term provided.</p>
+        <p className="text-lg text-brand-dark">No search term provided.</p>
       )}
     </div>
   );

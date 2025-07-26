@@ -23,7 +23,8 @@ export function NavigationProvider({ children }) {
   const startLoading = () => setIsLoading(true);
 
   const push = (url) => {
-    const currentUrl = pathname + (searchParams?.toString() ? `?${searchParams.toString()}` : '');
+    const currentUrl =
+      pathname + (searchParams?.toString() ? `?${searchParams.toString()}` : '');
     if (url === currentUrl) return;
     startLoading();
     router.push(url);

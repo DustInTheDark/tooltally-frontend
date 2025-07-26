@@ -1,8 +1,8 @@
-'use client'
-import { useTheme } from './ThemeContext'
+'use client';
+import { useTheme } from './ThemeContext';
 
 export default function ThemeSwitcher() {
-  const { theme, setTheme } = useTheme()
+  const { theme, setTheme } = useTheme();
 
   return (
     <select
@@ -14,5 +14,5 @@ export default function ThemeSwitcher() {
       <option value="dark">Dark</option>
       <option value="contrast">Contrast</option>
     </select>
-  )
+  );
 }
