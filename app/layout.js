@@ -1,8 +1,6 @@
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { NavigationProvider } from '@/components/NavigationContext';
-import { ThemeProvider } from '@/components/ThemeContext';
-import ThemeSwitcher from '@/components/ThemeSwitcher';
 import Header from '@/components/Header';
 
 /**
@@ -28,14 +26,10 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-cover bg-center bg-no-repeat bg-[url('/hero.png')]`}>
-        <ThemeProvider>
-          <NavigationProvider>
-            {/* Allows the user to toggle between light, dark and contrast themes */}
-            <ThemeSwitcher />
-            <Header />
-            {children}
-          </NavigationProvider>
-        </ThemeProvider>
+        <NavigationProvider>
+          <Header />
+          {children}
+        </NavigationProvider>
       </body>
     </html>
   );
