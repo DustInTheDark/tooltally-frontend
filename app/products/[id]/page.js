@@ -9,7 +9,7 @@ export default async function ProductDetailPage({ params }) {
 
   return (
     <main className="px-4 py-8">
-      <h1 className="mb-6 text-2xl font-semibold text-brand-dark">Product {id} Details</h1>
+      <h1 className="mb-6 text-2xl font-semibold text-white">Product {id} Details</h1>
       {vendors.length > 0 ? (
         <ul className="vendor-list space-y-4">
           {vendors.map((vendor, index) => (
