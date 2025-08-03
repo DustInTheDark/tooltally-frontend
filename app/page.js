@@ -7,6 +7,7 @@ export default function HomePage() {
       <SearchBar />
 
       {/* Category cards section */}
+      <h2 className="mt-8 mb-4 text-xl font-semibold text-brand-dark">Categories</h2>
       <div className="category-cards grid gap-4 sm:grid-cols-3">
         <CategoryCard title="Power Tools" slug="power-tools" />
         <CategoryCard title="Hand Tools" slug="hand-tools" />
