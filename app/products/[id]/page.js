@@ -1,5 +1,5 @@
 export default async function ProductDetailPage({ params }) {
-  const { id } = params;
+  const { id } = await params;
   // TODO: Fetch product details and vendor offers from backend
   // Dummy vendor offers for demonstration
   const vendors = [

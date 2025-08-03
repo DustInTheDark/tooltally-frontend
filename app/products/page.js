@@ -1,4 +1,5 @@
 import ProductCard from "../../components/ProductCard";
+import SearchBar from "../../components/SearchBar";
 
 export default async function ProductsPage({ searchParams }) {
   const query = searchParams?.q || "";
@@ -7,6 +8,7 @@ export default async function ProductsPage({ searchParams }) {
 
   return (
     <main className="px-4 py-8">
+      <SearchBar defaultValue={query} />
       {query && (
         <h1 className="mb-6 text-2xl font-semibold text-brand-dark">Search Results for "{query}"</h1>
       )}
