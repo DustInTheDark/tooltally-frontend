@@ -2,7 +2,8 @@ import ProductCard from "../../components/ProductCard";
 import SearchBar from "../../components/SearchBar";
 
 export default async function ProductsPage({ searchParams }) {
-  const query = searchParams?.q || "";
+  const params = await searchParams;
+  const query = params?.q || "";
   // TODO: Integrate with backend to fetch products based on search query
   const products = []; // No random generation; will populate from backend in the future
 
