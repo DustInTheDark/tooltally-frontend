@@ -21,15 +21,13 @@ html.contrast body {
   background-color: #000;
   color: #fff;
 }
-
-/* Input fields in dark and contrast modes also use white text for consistency. */
-html.dark input,
-html.dark select,
-html.dark textarea,
-html.contrast input,
-html.contrast select,
-html.contrast textarea {
-  color: #fff;
+/* Search bar inputs and category cards should always display black text. */
+.search-input,
+.category-card,
+input,
+select,
+textarea {
+  @apply text-black;
 }
 
 /* Specific override for elements that need contrast text when contrast mode is enabled. */
