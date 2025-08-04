@@ -14,8 +14,8 @@ export default async function ProductDetailPage({ params }) {
         <ul className="vendor-list space-y-4">
           {vendors.map((vendor, index) => (
             <li key={index} className="vendor-item flex items-center justify-between rounded-lg border border-brand-slate bg-white p-4 shadow-sm">
-              <span className="vendor-name font-medium text-brand-dark">{vendor.name}</span>
-              <span className="vendor-price text-brand-blue font-bold">{vendor.price}</span>
+              <span className="vendor-name font-medium text-white">{vendor.name}</span>
+              <span className="vendor-price text-white font-bold">{vendor.price}</span>
               <a
                 href={vendor.url}
                 target="_blank"

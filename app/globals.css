@@ -4,35 +4,35 @@
 
 /**
  * Global styles updated to apply the new colour palette and font.
- * The body now uses the brand light background and dark text by default.
- * In dark mode we fall back to Tailwind's dark backgrounds and text.
- * A contrast mode is still provided for accessibility.
+ * The body now uses the brand light background and white text by default.
+ * In dark mode we fall back to Tailwind's dark backgrounds while keeping white text.
+ * A contrast mode is still provided for accessibility, though text remains white.
  */
 
 body {
-  @apply bg-brand-light text-brand-dark font-sans;
+  @apply bg-brand-light text-white font-sans;
 }
 
 html.dark body {
-  @apply bg-gray-900 text-gray-100;
+  @apply bg-gray-900 text-white;
 }
 
 html.contrast body {
   background-color: #000;
-  color: #ffeb3b;
+  color: #fff;
 }
 
-/* Input fields in dark and contrast modes use dark text so the placeholder remains visible. */
+/* Input fields in dark and contrast modes also use white text for consistency. */
 html.dark input,
 html.dark select,
 html.dark textarea,
 html.contrast input,
 html.contrast select,
 html.contrast textarea {
-  color: #000;
+  color: #fff;
 }
 
 /* Specific override for elements that need contrast text when contrast mode is enabled. */
 html.contrast .contrast-text {
-  color: #000;
+  color: #fff;
 }

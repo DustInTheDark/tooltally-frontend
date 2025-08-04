@@ -8,7 +8,7 @@ export default function SearchBar({ defaultValue = '' }) {
         name="q"
         placeholder="Search for products..."
         defaultValue={defaultValue}
-        className="search-input flex-grow rounded-md border border-brand-slate p-3 text-brand-dark"
+        className="search-input flex-grow rounded-md border border-brand-slate p-3 text-white"
       />
       <button
         type="submit"
