@@ -1,5 +1,5 @@
 export default async function ProductDetailPage({ params }) {
-  const { id } = params;
+  const { id } = await params;
   const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
   let product = null;
 

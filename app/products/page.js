@@ -2,9 +2,10 @@ import ProductCard from "../../components/ProductCard";
 import SearchBar from "../../components/SearchBar";
 
 export default async function ProductsPage({ searchParams }) {
-  const query = searchParams?.q || "";
+  const params = await searchParams;
+  const query = params?.q || "";
   const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-  const url = `${apiBase}/products${query ? `?search=${encodeURIComponent(query)}` : ""}`;
+  const url = `${apiBase}/products${query ? `?q=${encodeURIComponent(query)}` : ""}`;
   let products = [];
 
   try {

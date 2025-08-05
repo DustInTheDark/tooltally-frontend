@@ -2,10 +2,10 @@ import ProductCard from "../../../components/ProductCard";
 import SearchBar from "../../../components/SearchBar";
 
 export default async function CategoryPage({ params }) {
-  const { category } = params;
+  const { category } = await params;
   const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  const url = `${apiBase}/products?category=${encodeURIComponent(category)}`;
   const categoryName = category.replace(/-/g, " ");
-  const url = `${apiBase}/products?category=${encodeURIComponent(categoryName)}`;
   let products = [];
 
   try {
