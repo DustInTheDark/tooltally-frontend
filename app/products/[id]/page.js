@@ -1,28 +1,49 @@
 export default async function ProductDetailPage({ params }) {
-  const { id } = await params;
-  // TODO: Fetch product details and vendor offers from backend
-  // Dummy vendor offers for demonstration
-  const vendors = [
-    { name: "Vendor A", price: "$99.00", url: `https://vendor-a.example.com/product/${id}` },
-    { name: "Vendor B", price: "$105.50", url: `https://vendor-b.example.com/product/${id}` }
-  ];
+  const { id } = params;
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  let product = null;
+
+  try {
+    const res = await fetch(`${apiBase}/products/${id}`, { cache: "no-store" });
+    if (res.ok) {
+      product = await res.json();
+    }
+  } catch (e) {
+    console.error("Failed to fetch product details", e);
+  }
+
+  if (!product) {
+    return (
+      <main className="px-4 py-8">
+        <p>Product not found.</p>
+      </main>
+    );
+  }
 
   return (
     <main className="px-4 py-8">
-      <h1 className="mb-6 text-2xl font-semibold text-white">Product {id} Details</h1>
-      {vendors.length > 0 ? (
+      <h1 className="mb-2 text-2xl font-semibold text-white">{product.name}</h1>
+      {product.category && (
+        <p className="mb-6 text-sm text-white">{product.category}</p>
+      )}
+      {product.vendors.length > 0 ? (
         <ul className="vendor-list space-y-4">
-          {vendors.map((vendor, index) => (
-            <li key={index} className="vendor-item flex items-center justify-between rounded-lg border border-brand-slate bg-white p-4 shadow-sm">
-              <span className="vendor-name font-medium text-white">{vendor.name}</span>
-              <span className="vendor-price text-white font-bold">{vendor.price}</span>
+          {product.vendors.map((vendor, index) => (
+            <li
+              key={index}
+              className="vendor-item flex items-center justify-between rounded-lg border border-brand-slate bg-white p-4 shadow-sm"
+            >
+              <span className="vendor-name font-medium text-white">{vendor.vendor}</span>
+              <span className="vendor-price text-white font-bold">
+                {`$${Number(vendor.price).toFixed(2)}`}
+              </span>
               <a
-                href={vendor.url}
+                href={vendor.buy_url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="buy-button rounded-md bg-brand-orange px-3 py-2 text-white hover:bg-brand-orange/90"
               >
-                Buy
+                Buy Now
               </a>
             </li>
           ))}

@@ -7,8 +7,14 @@ export default function ProductCard({ product }) {
       <h3 className="text-lg font-semibold text-white product-name">
         <Link href={`/products/${product.id}`}>{product.name}</Link>
       </h3>
-      <p className="product-price text-white font-bold">{product.price}</p>
-      <p className="product-vendors text-sm text-white">{product.vendors} vendors</p>
+      {product.category && (
+        <p className="product-category text-sm text-white">{product.category}</p>
+      )}
+      {typeof product.min_price !== "undefined" && (
+        <p className="product-price text-white font-bold">
+          {`From $${Number(product.min_price).toFixed(2)}`}
+        </p>
+      )}
     </div>
   );
 }

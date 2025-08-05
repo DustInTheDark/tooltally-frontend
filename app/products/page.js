@@ -2,10 +2,19 @@ import ProductCard from "../../components/ProductCard";
 import SearchBar from "../../components/SearchBar";
 
 export default async function ProductsPage({ searchParams }) {
-  const params = await searchParams;
-  const query = params?.q || "";
-  // TODO: Integrate with backend to fetch products based on search query
-  const products = []; // No random generation; will populate from backend in the future
+  const query = searchParams?.q || "";
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  const url = `${apiBase}/products${query ? `?search=${encodeURIComponent(query)}` : ""}`;
+  let products = [];
+
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    if (res.ok) {
+      products = await res.json();
+    }
+  } catch (e) {
+    console.error("Failed to fetch products", e);
+  }
 
   return (
     <main className="px-4 py-8">
