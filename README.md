@@ -1,31 +1,31 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# ToolTally Frontend
 
-## Getting Started
+This repository contains the Next.js frontend for ToolTally. It expects an API backend (for example, the Flask server from [tooltally-scrapers](https://github.com/DustInTheDark/tooltally-scrapers)) running separately.
 
-First, run the development server:
+## Setup
+
+Run these commands from the `tooltally-frontend` directory:
 
 ```bash
+echo "NEXT_PUBLIC_API_URL=http://localhost:5000" > .env.local
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The development server runs at <http://localhost:3000> and forwards API requests to `NEXT_PUBLIC_API_URL`.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Notes
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+This frontend targets Next.js 15; dynamic routes await `params` and `searchParams` to avoid runtime warnings.
 
-## Learn More
+## Testing and linting
 
-To learn more about Next.js, take a look at the following resources:
+This project does not yet define test or lint scripts. Running them will report missing configuration:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm test     # no tests configured
+npm run lint # eslint not configured
+```
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
