@@ -5,7 +5,7 @@ export default function SearchBar({ defaultValue = '' }) {
     <form action="/products" method="get" className="mb-8 flex w-full max-w-xl items-center gap-2">
       <input
         type="text"
-        name="q"
+        name="search"
         placeholder="Search for products..."
         defaultValue={defaultValue}
         className="search-input flex-grow rounded-md border border-brand-slate p-3"

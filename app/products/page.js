@@ -3,9 +3,9 @@ import SearchBar from "../../components/SearchBar";
 
 export default async function ProductsPage({ searchParams }) {
   const params = await searchParams;
-  const query = params?.q || "";
+  const search = params?.search || "";
   const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-  const url = `${apiBase}/products${query ? `?q=${encodeURIComponent(query)}` : ""}`;
+  const url = `${apiBase}/products${search ? `?search=${encodeURIComponent(search)}` : ""}`;
   let products = [];
 
   try {
