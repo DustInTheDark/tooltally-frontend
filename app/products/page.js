@@ -1,36 +1,78 @@
+// tooltally-frontend/app/products/page.js
+"use client";
+
+import { useEffect, useState } from "react";
 import ProductCard from "../../components/ProductCard";
-import SearchBar from "../../components/SearchBar";
 
-export default async function ProductsPage({ searchParams }) {
-  const params = await searchParams;
-  const query = params?.search || "";
-  const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-  const url = `${apiBase}/products${query ? `?search=${encodeURIComponent(query)}` : ""}`;
-  let products = [];
+export default function ProductsPage({ searchParams }) {
+  const query = searchParams?.q || "";
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  try {
-    const res = await fetch(url, { cache: "no-store" });
-    if (res.ok) {
-      products = await res.json();
+  useEffect(() => {
+    async function fetchProducts() {
+      try {
+        setLoading(true);
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+        const res = await fetch(`${apiBase}/products?search=${encodeURIComponent(query)}`);
+        if (!res.ok) {
+          console.error("Failed to fetch products:", res.statusText);
+          setProducts([]);
+          return;
+        }
+        const data = await res.json();
+        setProducts(data);
+      } catch (error) {
+        console.error("Error fetching products:", error);
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
     }
-  } catch (e) {
-    console.error("Failed to fetch products", e);
+
+    if (query) {
+      fetchProducts();
+    } else {
+      setProducts([]);
+      setLoading(false);
+    }
+  }, [query]);
+
+  if (loading) {
+    return (
+      <main className="container mx-auto px-4 py-8">
+        <p className="text-gray-600">Loading products...</p>
+      </main>
+    );
   }
 
   return (
-    <main className="px-4 py-8">
-      <SearchBar defaultValue={query} />
+    <main className="container mx-auto px-4 py-8">
       {query && (
-        <h1 className="mb-6 text-2xl font-semibold text-white">Search Results for "{query}"</h1>
+        <h1 className="text-2xl font-bold mb-6">
+          Search results for "{query}"
+        </h1>
       )}
       {products.length > 0 ? (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
+            <ProductCard
+              key={product.id}
+              product={{
+                id: product.id,
+                name: product.name,
+                min_price: product.min_price,
+                vendors_count: product.vendors_count || 1, // use vendor count if available
+              }}
+            />
           ))}
         </div>
       ) : (
-        <p>No products found.</p>
+        <p className="text-gray-600">
+          {query
+            ? `No products found for "${query}".`
+            : "Please enter a search term."}
+        </p>
       )}
     </main>
   );

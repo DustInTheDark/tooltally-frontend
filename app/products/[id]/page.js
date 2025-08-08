@@ -1,55 +1,83 @@
-export default async function ProductDetailPage({ params }) {
-  const { id } = await params;
-  const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-  let product = null;
+"use client";
 
-  try {
-    const res = await fetch(`${apiBase}/products/${id}`, { cache: "no-store" });
-    if (res.ok) {
-      product = await res.json();
+import { useEffect, useState } from "react";
+
+export default function ProductDetailPage({ params }) {
+  const { id } = params;
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchProduct() {
+      try {
+        setLoading(true);
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/products/${id}`
+        );
+        if (!res.ok) {
+          console.error("Failed to fetch product:", res.statusText);
+          setProduct(null);
+          return;
+        }
+        const data = await res.json();
+        setProduct(data);
+      } catch (error) {
+        console.error("Error fetching product:", error);
+        setProduct(null);
+      } finally {
+        setLoading(false);
+      }
     }
-  } catch (e) {
-    console.error("Failed to fetch product details", e);
+    fetchProduct();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <main className="container mx-auto px-4 py-8">
+        <p className="text-gray-600">Loading product details...</p>
+      </main>
+    );
   }
 
   if (!product) {
     return (
-      <main className="px-4 py-8">
-        <p>Product not found.</p>
+      <main className="container mx-auto px-4 py-8">
+        <p className="text-gray-600">Product not found.</p>
       </main>
     );
   }
 
   return (
-    <main className="px-4 py-8">
-      <h1 className="mb-2 text-2xl font-semibold text-white">{product.name}</h1>
+    <main className="container mx-auto px-4 py-8">
+      <h1 className="text-2xl font-bold mb-2">{product.name}</h1>
       {product.category && (
-        <p className="mb-6 text-sm text-white">{product.category}</p>
+        <p className="mb-6 text-sm text-gray-600">{product.category}</p>
       )}
-      {product.vendors.length > 0 ? (
-        <ul className="vendor-list space-y-4">
+
+      {product?.vendors?.length > 0 ? (
+        <ul className="space-y-4">
           {product.vendors.map((vendor, index) => (
             <li
               key={index}
-              className="vendor-item flex items-center justify-between rounded-lg border border-brand-slate bg-white p-4 shadow-sm"
+              className="flex items-center justify-between border border-gray-300 rounded-lg p-4"
             >
-              <span className="vendor-name font-medium text-white">{vendor.vendor}</span>
-              <span className="vendor-price text-white font-bold">
-                {`$${Number(vendor.price).toFixed(2)}`}
-              </span>
-              <a
-                href={vendor.buy_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="buy-button rounded-md bg-brand-orange px-3 py-2 text-white hover:bg-brand-orange/90"
-              >
-                Buy Now
-              </a>
+              <div className="font-medium">{vendor.vendor}</div>
+              <div className="flex items-center space-x-4">
+                <div className="font-semibold">£{vendor.price}</div>
+                <a
+                  href={vendor.buy_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-blue-600 text-white px-3 py-2 rounded"
+                >
+                  Buy
+                </a>
+              </div>
             </li>
           ))}
         </ul>
       ) : (
-        <p>No vendor offers available for this product.</p>
+        <p className="text-gray-600">No vendors available for this product.</p>
       )}
     </main>
   );
