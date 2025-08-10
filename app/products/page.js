@@ -1,80 +1,61 @@
-// app/products/page.js
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import ProductCard from "../../components/ProductCard";
+import ProductCard from "@/components/ProductCard";
 
 export default function ProductsPage() {
-  const params = useSearchParams();
-  const query = params.get("q")?.trim() || "";
+  const searchParams = useSearchParams();
+  const query = searchParams.get("search")?.trim() || "";
 
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(!!query);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    let cancelled = false;
+    if (!query) return;
 
-    async function run() {
+    async function fetchProducts() {
+      setLoading(true);
       setError("");
-      setProducts([]);
-      if (!query) {
-        setLoading(false);
-        return;
-      }
       try {
-        setLoading(true);
-        // Hit Next.js proxy → forwards to Flask
-        const res = await fetch(
-          `/api/products?search=${encodeURIComponent(query)}`,
-          { cache: "no-store" }
-        );
-        if (!res.ok) throw new Error(`API ${res.status} ${res.statusText}`);
+        const res = await fetch(`/api/products?search=${encodeURIComponent(query)}`);
+        if (!res.ok) throw new Error(`API error ${res.status}`);
         const data = await res.json();
-        if (!cancelled) setProducts(Array.isArray(data) ? data : []);
-      } catch (e) {
-        console.error(e);
-        if (!cancelled) setError("Failed to load products. Please try again.");
+        setProducts(data);
+      } catch (err) {
+        console.error(err);
+        setError("Failed to load products.");
       } finally {
-        if (!cancelled) setLoading(false);
+        setLoading(false);
       }
     }
 
-    run();
-    return () => { cancelled = true; };
+    fetchProducts();
   }, [query]);
 
   return (
-    <main className="container mx-auto px-4 py-8">
-      {query ? (
-        <h1 className="text-2xl font-bold mb-6">Search results for “{query}”</h1>
-      ) : (
-        <h1 className="text-2xl font-bold mb-6">Search</h1>
+    <div className="px-4 py-6">
+      <h1 className="text-2xl font-bold mb-4 text-white">Search Results for "{query}"</h1>
+
+      {loading && <p className="text-white">Loading...</p>}
+      {error && <p className="text-red-500">{error}</p>}
+      {!loading && !error && products.length === 0 && (
+        <p className="text-white">No products found.</p>
       )}
 
-      {loading && <p className="text-gray-600">Loading products…</p>}
-      {!loading && error && <p className="text-red-600">{error}</p>}
-
-      {!loading && !error && products.length === 0 && query && (
-        <p className="text-gray-600">No products found for “{query}”.</p>
-      )}
-
-      {!loading && !error && products.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {products.map((p) => (
-            <ProductCard
-              key={p.id}
-              product={{
-                id: p.id,
-                name: p.name,
-                category: p.category,
-                min_price: p.min_price,   // ← use API field
-              }}
-            />
-          ))}
-        </div>
-      )}
-    </main>
+      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        {products.map((p) => (
+          <ProductCard
+            key={p.id}
+            id={p.id}
+            name={p.name}
+            category={p.category}
+            min_price={p.min_price}
+            vendors_count={p.vendors_count}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
