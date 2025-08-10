@@ -1,45 +1,44 @@
-// tooltally-frontend/app/products/[id]/page.js
+// app/products/[id]/page.js
 "use client";
 
 import { useEffect, useState } from "react";
 
-function formatGBP(value) {
-  const n = Number(value);
-  if (Number.isNaN(n)) return "£0.00";
-  return `£${n.toFixed(2)}`;
+function gbp(x) {
+  const n = Number(x);
+  return Number.isFinite(n) ? `£${n.toFixed(2)}` : "£0.00";
 }
 
 export default function ProductDetailPage({ params }) {
   const { id } = params;
-  const [product, setProduct] = useState(null); // { id, name, category, vendors: [{vendor, price, buy_url}] }
+  const [product, setProduct] = useState(null);  // { id, name, category, vendors: [{vendor, price, buy_url}] }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    async function fetchProduct() {
+    let cancelled = false;
+    async function run() {
       setError("");
       try {
         setLoading(true);
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-        const res = await fetch(`${apiBase}/products/${id}`, { cache: "no-store" });
+        const res = await fetch(`/api/products/${id}`, { cache: "no-store" });
         if (!res.ok) {
           if (res.status === 404) {
-            setProduct(null);
-            setError("Product not found.");
+            if (!cancelled) setError("Product not found.");
             return;
           }
           throw new Error(`API ${res.status} ${res.statusText}`);
         }
         const data = await res.json();
-        setProduct(data);
+        if (!cancelled) setProduct(data);
       } catch (e) {
-        console.error("Error fetching product detail:", e);
-        setError("Failed to load product details. Please try again.");
+        console.error(e);
+        if (!cancelled) setError("Failed to load product details. Please try again.");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
-    fetchProduct();
+    run();
+    return () => { cancelled = true; };
   }, [id]);
 
   return (
@@ -50,7 +49,7 @@ export default function ProductDetailPage({ params }) {
       {!loading && !error && product && (
         <>
           <h1 className="text-2xl font-bold mb-2">{product.name}</h1>
-          {product?.category && (
+          {product.category && (
             <p className="mb-6 text-sm text-gray-600">{product.category}</p>
           )}
 
@@ -63,9 +62,7 @@ export default function ProductDetailPage({ params }) {
                 >
                   <div className="font-medium text-gray-800">{v.vendor}</div>
                   <div className="flex items-center gap-4">
-                    <div className="font-semibold text-gray-900">
-                      {formatGBP(v.price)}
-                    </div>
+                    <div className="font-semibold text-gray-900">{gbp(v.price)}</div>
                     <a
                       href={v.buy_url}
                       target="_blank"

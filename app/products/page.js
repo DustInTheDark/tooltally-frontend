@@ -1,17 +1,22 @@
-// tooltally-frontend/app/products/page.js
+// app/products/page.js
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import ProductCard from "../../components/ProductCard";
 
-export default function ProductsPage({ searchParams }) {
-  const query = searchParams?.q?.trim() || "";
+export default function ProductsPage() {
+  const params = useSearchParams();
+  const query = params.get("q")?.trim() || "";
+
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(!!query);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    async function fetchProducts() {
+    let cancelled = false;
+
+    async function run() {
       setError("");
       setProducts([]);
       if (!query) {
@@ -20,26 +25,24 @@ export default function ProductsPage({ searchParams }) {
       }
       try {
         setLoading(true);
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+        // Hit Next.js proxy → forwards to Flask
         const res = await fetch(
-          `${apiBase}/products?search=${encodeURIComponent(query)}`,
+          `/api/products?search=${encodeURIComponent(query)}`,
           { cache: "no-store" }
         );
-        if (!res.ok) {
-          throw new Error(`API ${res.status} ${res.statusText}`);
-        }
+        if (!res.ok) throw new Error(`API ${res.status} ${res.statusText}`);
         const data = await res.json();
-        // API already returns unique products grouped by name+category and min_price.
-        setProducts(Array.isArray(data) ? data : []);
+        if (!cancelled) setProducts(Array.isArray(data) ? data : []);
       } catch (e) {
-        console.error("Error fetching products:", e);
-        setError("Failed to load products. Please try again.");
+        console.error(e);
+        if (!cancelled) setError("Failed to load products. Please try again.");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
 
-    fetchProducts();
+    run();
+    return () => { cancelled = true; };
   }, [query]);
 
   return (
@@ -66,8 +69,7 @@ export default function ProductsPage({ searchParams }) {
                 id: p.id,
                 name: p.name,
                 category: p.category,
-                min_price: p.min_price, // <-- pass the correct API field
-                // optional: vendors_count could be added by API later
+                min_price: p.min_price,   // ← use API field
               }}
             />
           ))}
