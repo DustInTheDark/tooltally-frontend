@@ -1,61 +1,72 @@
+// app/products/page.js
 "use client";
 
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import ProductCard from "@/components/ProductCard";
+import ProductCard from "../../components/ProductCard";
 
 export default function ProductsPage() {
-  const searchParams = useSearchParams();
-  const query = searchParams.get("search")?.trim() || "";
+  const params = useSearchParams();
+  // Support both ?search= and ?q= just in case
+  const query = (params.get("search") || params.get("q") || "").trim();
 
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(!!query);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!query) return;
+    let cancelled = false;
 
-    async function fetchProducts() {
-      setLoading(true);
+    async function run() {
       setError("");
-      try {
-        const res = await fetch(`/api/products?search=${encodeURIComponent(query)}`);
-        if (!res.ok) throw new Error(`API error ${res.status}`);
-        const data = await res.json();
-        setProducts(data);
-      } catch (err) {
-        console.error(err);
-        setError("Failed to load products.");
-      } finally {
+      setProducts([]);
+      if (!query) {
         setLoading(false);
+        return;
+      }
+      try {
+        setLoading(true);
+        const res = await fetch(`/api/products?search=${encodeURIComponent(query)}`, {
+          cache: "no-store",
+        });
+        if (!res.ok) throw new Error(`API ${res.status} ${res.statusText}`);
+        const data = await res.json();
+        if (!cancelled) setProducts(Array.isArray(data) ? data : []);
+      } catch (e) {
+        console.error(e);
+        if (!cancelled) setError("Failed to load products. Please try again.");
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     }
 
-    fetchProducts();
+    run();
+    return () => {
+      cancelled = true;
+    };
   }, [query]);
 
   return (
-    <div className="px-4 py-6">
-      <h1 className="text-2xl font-bold mb-4 text-white">Search Results for "{query}"</h1>
-
-      {loading && <p className="text-white">Loading...</p>}
-      {error && <p className="text-red-500">{error}</p>}
-      {!loading && !error && products.length === 0 && (
-        <p className="text-white">No products found.</p>
+    <main className="container mx-auto px-4 py-8">
+      {query ? (
+        <h1 className="text-2xl font-bold mb-6">Search results for “{query}”</h1>
+      ) : (
+        <h1 className="text-2xl font-bold mb-6">Search</h1>
       )}
 
-      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-        {products.map((p) => (
-          <ProductCard
-            key={p.id}
-            id={p.id}
-            name={p.name}
-            category={p.category}
-            min_price={p.min_price}
-            vendors_count={p.vendors_count}
-          />
-        ))}
-      </div>
-    </div>
+      {loading && <p className="text-gray-600">Loading products…</p>}
+      {!loading && error && <p className="text-red-600">{error}</p>}
+      {!loading && !error && products.length === 0 && query && (
+        <p className="text-gray-600">No products found for “{query}”.</p>
+      )}
+
+      {!loading && !error && products.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {products.map((p) => (
+            <ProductCard key={`${p.id}-${p.name}`} product={p} />
+          ))}
+        </div>
+      )}
+    </main>
   );
 }

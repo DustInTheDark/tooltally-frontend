@@ -1,18 +1,26 @@
-import CategoryCard from "../components/CategoryCard";
-import SearchBar from "../components/SearchBar";
+// app/page.js
+import Link from "next/link";
 
 export default function HomePage() {
   return (
-    <main className="px-4 py-8">
-      <SearchBar />
+    <main className="container mx-auto px-4 py-8">
+      {/* Search Bar */}
+      <form action="/products" method="get" className="max-w-md mx-auto mb-8 flex">
+        <input
+          type="text"
+          name="search"            // <-- important: use ?search=
+          placeholder="Search for products..."
+          className="flex-grow border border-gray-300 rounded-l px-4 py-2 focus:outline-none"
+        />
+        <button
+          type="submit"
+          className="bg-blue-600 text-white px-4 py-2 rounded-r"
+        >
+          Search
+        </button>
+      </form>
 
-      {/* Category cards section */}
-      <h2 className="mt-8 mb-4 text-xl font-semibold text-white">Categories</h2>
-      <div className="category-cards grid gap-4 sm:grid-cols-3">
-        <CategoryCard title="Power Tools" slug="power-tools" />
-        <CategoryCard title="Hand Tools" slug="hand-tools" />
-        <CategoryCard title="Accessories" slug="accessories" />
-      </div>
+      {/* (Any other home content you already have) */}
     </main>
   );
 }
