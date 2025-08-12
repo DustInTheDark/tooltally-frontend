@@ -1,68 +1,134 @@
-// app/api/products/route.js
-export async function GET(request) {
-  const { searchParams } = new URL(request.url);
-  const search = searchParams.get("search") || "";
-  const category = searchParams.get("category") || "";
+import "server-only";
 
-  const BACKEND = process.env.BACKEND_API_URL || "http://127.0.0.1:5000";
-  const url = new URL("/products", BACKEND);
-  if (search) url.searchParams.set("search", search);
-  if (category) url.searchParams.set("category", category);
+const BACKEND_API_URL = process.env.BACKEND_API_URL || "http://127.0.0.1:5000";
 
-  // Fetch raw rows from Flask. Some setups return vendor-level rows (price, vendor_name),
-  // others already return grouped rows (min_price). We normalize here.
-  const upstream = await fetch(url.toString(), { cache: "no-store" });
-  if (!upstream.ok) {
-    return new Response(
-      JSON.stringify({ error: `Upstream error ${upstream.status}` }),
-      { status: 502, headers: { "content-type": "application/json" } }
-    );
+function safeNumber(n) {
+  const x = Number(n);
+  return Number.isFinite(x) ? x : null;
+}
+
+function formatKey(name, category) {
+  return `${(name || "").trim()}|${(category || "").trim()}`.toLowerCase();
+}
+
+/**
+ * Normalize backend data to grouped items:
+ * { id, name, category, min_price, vendors_count }
+ *
+ * - If backend already returns grouped items with these fields, we pass through.
+ * - If backend returns vendor-level rows, we group by name+category, compute min_price,
+ *   count distinct vendors, and pick a stable id from the first row in each group.
+ */
+function normalizeProducts(input) {
+  if (!Array.isArray(input)) return [];
+
+  const looksGrouped =
+    input.length > 0 &&
+    "id" in input[0] &&
+    "name" in input[0] &&
+    "category" in input[0] &&
+    "min_price" in input[0];
+
+  if (looksGrouped) {
+    // Ensure vendors_count exists if provided from backend; otherwise set null
+    return input.map((it) => ({
+      id: it.id,
+      name: it.name,
+      category: it.category ?? null,
+      min_price: safeNumber(it.min_price),
+      vendors_count:
+        typeof it.vendors_count === "number"
+          ? it.vendors_count
+          : it.vendors
+          ? new Set((it.vendors || []).map((v) => v.vendor)).size
+          : null,
+    }));
   }
-  const raw = await upstream.json();
 
-  // If already grouped (has min_price and no vendor_name), just return as-is.
-  if (
-    Array.isArray(raw) &&
-    raw.length > 0 &&
-    Object.prototype.hasOwnProperty.call(raw[0], "min_price") &&
-    !Object.prototype.hasOwnProperty.call(raw[0], "vendor_name")
-  ) {
-    return Response.json(raw);
-  }
-
-  // Otherwise, raw looks vendor-specific (fields like price, vendor_name).
-  // Group by name+category, compute min_price and vendors_count, pick a stable id.
-  const byKey = new Map();
-  for (const r of Array.isArray(raw) ? raw : []) {
-    const name = r.name ?? "";
-    const cat = r.category ?? "";
-    const key = `${name.toLowerCase()}|${cat.toLowerCase()}`;
-
-    const price = Number(
-      r.min_price ?? r.price ?? (typeof r.price === "string" ? r.price.replace(/[^\d.]/g, "") : NaN)
-    );
-    const idVal = Number(r.id) || 0;
-
-    if (!byKey.has(key)) {
-      byKey.set(key, {
-        id: idVal || 0,
-        name,
-        category: cat || null,
-        min_price: Number.isFinite(price) ? price : 0,
-        vendors_count: r.vendor_name ? 1 : 1, // default 1 if unknown
+  // Vendor-level -> group
+  const groups = new Map();
+  for (const row of input) {
+    const key = formatKey(row.name, row.category);
+    if (!groups.has(key)) {
+      groups.set(key, {
+        id: row.id, // choose first seen row's id as canonical (must be a real backend id)
+        name: row.name,
+        category: row.category ?? null,
+        min_price: safeNumber(row.price),
+        vendors: new Set(row.vendor ? [row.vendor] : []),
       });
     } else {
-      const entry = byKey.get(key);
-      if (Number.isFinite(price)) entry.min_price = Math.min(entry.min_price, price);
-      entry.vendors_count += 1;
-      if (idVal && (!entry.id || idVal < entry.id)) entry.id = idVal;
-      byKey.set(key, entry);
+      const g = groups.get(key);
+      // Prefer a stable smallest numeric id if available
+      const rowIdNum = Number(row.id);
+      const gIdNum = Number(g.id);
+      if (Number.isFinite(rowIdNum) && Number.isFinite(gIdNum)) {
+        if (rowIdNum < gIdNum) g.id = row.id;
+      }
+      if (!Number.isFinite(gIdNum) && row.id && typeof row.id === "string") {
+        // keep original chosen id if not numeric
+      }
+
+      const price = safeNumber(row.price);
+      if (Number.isFinite(price)) {
+        if (!Number.isFinite(g.min_price) || price < g.min_price) {
+          g.min_price = price;
+        }
+      }
+      if (row.vendor) g.vendors.add(row.vendor);
     }
   }
 
-  const products = Array.from(byKey.values()).sort((a, b) =>
-    (a.name || "").localeCompare(b.name || "")
-  );
+  const out = [];
+  for (const g of groups.values()) {
+    out.push({
+      id: g.id,
+      name: g.name,
+      category: g.category,
+      min_price: g.min_price,
+      vendors_count: g.vendors.size,
+    });
+  }
+  return out;
+}
 
-  return Response.json(products);
+export async function GET(request) {
+  const { searchParams } = new URL(request.url);
+  const search = searchParams.get("search") ?? searchParams.get("q") ?? "";
+  const category = searchParams.get("category") ?? "";
+  const page = Math.max(1, Number(searchParams.get("page") || "1"));
+  const limitRaw = Number(searchParams.get("limit") || "0");
+  const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? limitRaw : 0; // 0 means "no pagination"
+
+  // Build backend URL (single fetch)
+  const upstream = new URL("/products", BACKEND_API_URL);
+  if (search) upstream.searchParams.set("search", search);
+  if (category) upstream.searchParams.set("category", category);
+
+  const res = await fetch(upstream.toString(), { cache: "no-store" });
+  if (!res.ok) {
+    return new Response(
+      JSON.stringify({ error: `Backend error ${res.status}` }),
+      { status: res.status, headers: { "content-type": "application/json" } }
+    );
+  }
+  const raw = await res.json();
+  const normalized = normalizeProducts(raw);
+
+  if (limit > 0) {
+    const total = normalized.length;
+    const start = (page - 1) * limit;
+    const end = start + limit;
+    const items = start < total ? normalized.slice(start, end) : [];
+    return new Response(
+      JSON.stringify({ items, total, page, limit }),
+      { status: 200, headers: { "content-type": "application/json" } }
+    );
+  }
+
+  // No pagination requested -> return full array (legacy behavior)
+  return new Response(JSON.stringify(normalized), {
+    status: 200,
+    headers: { "content-type": "application/json" },
+  });
 }

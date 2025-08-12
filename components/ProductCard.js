@@ -1,51 +1,45 @@
-// components/ProductCard.js
 "use client";
 
 import Link from "next/link";
+import { formatGBP } from "@/utils/format";
 
-function gbp(x) {
-  const n = Number(x);
-  return Number.isFinite(n) ? `£${n.toFixed(2)}` : "£0.00";
-}
+export default function ProductCard({ product }) {
+  if (!product) return null;
 
-export default function ProductCard(props) {
-  // Accept either a single 'product' prop or individual props.
-  const p = props.product ?? props;
+  const {
+    id,
+    name,
+    category,
+    min_price: minPrice,
+    vendors_count: vendorsCount,
+  } = product;
 
-  // Guard against undefined to avoid runtime crashes
-  if (!p || (!p.id && !p.name)) {
-    return null;
-  }
+  return (
+    <Link
+      href={`/products/${encodeURIComponent(id)}`}
+      className="block rounded-2xl border border-gray-200 bg-white p-4 shadow-sm hover:shadow-md transition-shadow"
+    >
+      {/* Title */}
+      <h3 className="text-base sm:text-lg font-semibold leading-snug text-gray-900 line-clamp-2">
+        {name || "Untitled product"}
+      </h3>
 
-  const id = p.id;
-  const name = p.name ?? "Unnamed product";
-  const category = p.category ?? "";
-  const minPrice = p.min_price ?? p.price ?? 0;
-  const vendorsCount = typeof p.vendors_count === "number" ? p.vendors_count : undefined;
+      {/* Category (optional) */}
+      {category ? (
+        <p className="mt-1 text-sm text-gray-500">{category}</p>
+      ) : null}
 
-  // If we somehow still don't have an id, render a non-link fallback
-  const CardInner = (
-    <div className="block border border-gray-300 rounded-lg p-4 hover:shadow transition-shadow bg-white">
-      <p className="text-lg font-medium mb-1">{name}</p>
-      {category && <p className="text-xs text-gray-500 mb-2">{category}</p>}
-      <div className="flex items-baseline justify-between">
-        {typeof vendorsCount === "number" ? (
-          <span className="text-sm text-gray-600">
-            {vendorsCount} {vendorsCount === 1 ? "vendor" : "vendors"}
-          </span>
-        ) : (
-          <span className="text-sm text-gray-600">&nbsp;</span>
-        )}
-        <span className="font-semibold text-gray-800">{gbp(minPrice)}</span>
+      {/* Meta row */}
+      <div className="mt-3 flex items-center justify-between">
+        <span className="text-sm text-gray-600">
+          {typeof vendorsCount === "number"
+            ? `${vendorsCount} vendor${vendorsCount === 1 ? "" : "s"}`
+            : "—"}
+        </span>
+        <span className="text-base sm:text-lg font-semibold text-gray-900">
+          {typeof minPrice === "number" ? formatGBP(minPrice) : "—"}
+        </span>
       </div>
-    </div>
-  );
-
-  return id ? (
-    <Link href={`/products/${id}`} className="block">
-      {CardInner}
     </Link>
-  ) : (
-    CardInner
   );
 }
