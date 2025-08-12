@@ -1,8 +1,12 @@
 // app/api/products/[id]/route.js
 import { NextResponse } from "next/server";
 
-export async function GET(_request, { params }) {
-  const { id } = params || {};
+export async function GET(_request, context) {
+  // In Next.js 15, context.params may be a Promise in route handlers.
+  const maybePromise = context?.params;
+  const p = typeof maybePromise?.then === "function" ? await maybePromise : maybePromise;
+  const { id } = p || {};
+
   if (!id) {
     return NextResponse.json({ error: "Missing product id" }, { status: 400 });
   }
@@ -20,7 +24,7 @@ export async function GET(_request, { params }) {
     }
     const data = await res.json();
 
-    // Ensure vendors are sorted by ascending price (numeric)
+    // Ensure vendors sorted by ascending price
     if (data && Array.isArray(data.vendors)) {
       data.vendors = data.vendors
         .map((v) => ({

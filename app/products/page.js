@@ -1,7 +1,7 @@
 // app/products/page.js
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import ProductCard from "@/components/ProductCard";
 
@@ -25,15 +25,18 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Reset when search/category changes
+  // Prevent double initial fetch in React Strict Mode (dev)
+  const hasFetchedRef = useRef(false);
+
+  // Reset list when query changes
   useEffect(() => {
     setItems([]);
     setTotal(0);
     setPage(1);
     setErrorMsg("");
+    hasFetchedRef.current = false; // allow a fresh initial fetch
   }, [term, category]);
 
-  // Fetch a page
   const fetchPage = async (p) => {
     setLoading(true);
     try {
@@ -46,13 +49,18 @@ export default function ProductsPage() {
       const res = await fetch(`/api/products?${qs.toString()}`, {
         cache: "no-store",
       });
-      if (!res.ok) {
-        throw new Error(`API ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`API ${res.status}`);
+
       const data = await res.json();
-      const newItems = Array.isArray(data.items) ? data.items : [];
-      setItems((prev) => [...prev, ...newItems]);
-      setTotal(Number.isFinite(data.total) ? data.total : prev.length + newItems.length);
+      const pageItems = Array.isArray(data.items) ? data.items : [];
+
+      // Merge safely and set total correctly even if backend omitted it
+      setItems((prev) => {
+        const merged = [...prev, ...pageItems];
+        setTotal(Number.isFinite(data.total) ? data.total : merged.length);
+        return merged;
+      });
+
       setPage(Number.isFinite(data.page) ? data.page : p);
     } catch (e) {
       setErrorMsg("Failed to load products. Please try again.");
@@ -61,8 +69,10 @@ export default function ProductsPage() {
     }
   };
 
-  // Load initial page
+  // Initial load (guarded against double-run)
   useEffect(() => {
+    if (hasFetchedRef.current) return;
+    hasFetchedRef.current = true;
     fetchPage(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [term, category]);
@@ -76,9 +86,7 @@ export default function ProductsPage() {
       <div className="mb-4">
         <h1 className="text-2xl font-semibold text-gray-900">{heading}</h1>
         <p className="mt-1 text-sm text-gray-600">
-          {errorMsg
-            ? errorMsg
-            : `Showing ${showingStart}–${showingEnd} of ${total}`}
+          {errorMsg ? errorMsg : `Showing ${showingStart}–${showingEnd} of ${total}`}
         </p>
       </div>
 
@@ -110,9 +118,7 @@ export default function ProductsPage() {
       )}
 
       {!loading && items.length === 0 && !errorMsg && (
-        <div className="mt-10 text-center text-gray-600">
-          No results.
-        </div>
+        <div className="mt-10 text-center text-gray-600">No results.</div>
       )}
     </div>
   );
