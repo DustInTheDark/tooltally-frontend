@@ -1,144 +1,117 @@
+// app/products/page.js
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import ProductCard from "@/components/ProductCard";
-import { formatInt } from "@/utils/format";
 
-const DEFAULT_LIMIT = 24;
+const PAGE_SIZE = 24;
 
 export default function ProductsPage() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const term = (searchParams.get("search") || searchParams.get("q") || "").trim();
+  const sp = useSearchParams();
+  const term = (sp.get("search") || "").trim();
+  const category = (sp.get("category") || "").trim();
+
+  const heading = useMemo(() => {
+    if (term && category) return `Search results for ‘${term}’ in ${category}`;
+    if (term) return `Search results for ‘${term}’`;
+    if (category) return `Category: ${category}`;
+    return "All products";
+  }, [term, category]);
 
   const [items, setItems] = useState([]);
-  const [total, setTotal] = useState(null); // null means unknown (array fallback)
+  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(() => {
-    const urlLimit = Number(searchParams.get("limit"));
-    return Number.isFinite(urlLimit) && urlLimit > 0 ? urlLimit : DEFAULT_LIMIT;
-  });
   const [loading, setLoading] = useState(false);
-  const [done, setDone] = useState(false);
-  const firstLoadRef = useRef(true);
+  const [errorMsg, setErrorMsg] = useState("");
 
-  const qs = useMemo(() => {
-    const params = new URLSearchParams();
-    if (term) params.set("search", term);
-    params.set("page", String(page));
-    params.set("limit", String(limit));
-    return params.toString();
-  }, [term, page, limit]);
+  // Reset when search/category changes
+  useEffect(() => {
+    setItems([]);
+    setTotal(0);
+    setPage(1);
+    setErrorMsg("");
+  }, [term, category]);
 
-  const fetchPage = useCallback(async () => {
-    if (!term) {
-      setItems([]);
-      setTotal(0);
-      setDone(true);
-      return;
-    }
-
+  // Fetch a page
+  const fetchPage = async (p) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/products?${qs}`, { cache: "no-store" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
+      const qs = new URLSearchParams();
+      if (term) qs.set("search", term);
+      if (category) qs.set("category", category);
+      qs.set("page", String(p));
+      qs.set("limit", String(PAGE_SIZE));
 
-      // Proxy may return paginated shape { items, total, page, limit }
-      // or legacy array []. Handle both.
-      if (Array.isArray(data)) {
-        // Legacy: single fetch returns everything. We slice client-side.
-        const start = (page - 1) * limit;
-        const end = start + limit;
-        setTotal(data.length);
-        setItems((prev) => [...prev, ...data.slice(start, end)]);
-        if (end >= data.length) setDone(true);
-      } else if (data && Array.isArray(data.items)) {
-        setTotal(typeof data.total === "number" ? data.total : null);
-        setItems((prev) => [...prev, ...data.items]);
-        const fetchedSoFar = (page) * limit;
-        if (data.items.length < limit || (typeof data.total === "number" && fetchedSoFar >= data.total)) {
-          setDone(true);
-        }
-      } else {
-        // Unexpected shape; fail gracefully
-        setDone(true);
+      const res = await fetch(`/api/products?${qs.toString()}`, {
+        cache: "no-store",
+      });
+      if (!res.ok) {
+        throw new Error(`API ${res.status}`);
       }
-    } catch (err) {
-      console.error("Failed to load products:", err);
-      setDone(true);
+      const data = await res.json();
+      const newItems = Array.isArray(data.items) ? data.items : [];
+      setItems((prev) => [...prev, ...newItems]);
+      setTotal(Number.isFinite(data.total) ? data.total : prev.length + newItems.length);
+      setPage(Number.isFinite(data.page) ? data.page : p);
+    } catch (e) {
+      setErrorMsg("Failed to load products. Please try again.");
     } finally {
       setLoading(false);
     }
-  }, [term, qs, page, limit]);
-
-  // Reset when term changes
-  useEffect(() => {
-    setItems([]);
-    setTotal(null);
-    setPage(1);
-    setDone(false);
-    firstLoadRef.current = true;
-  }, [term, limit]);
-
-  // Initial + subsequent page loads
-  useEffect(() => {
-    if (!term) return;
-    fetchPage();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, term]);
-
-  const onLoadMore = () => {
-    if (!done && !loading) setPage((p) => p + 1);
   };
 
-  const rangeLabel = useMemo(() => {
-    if (!term) return "";
-    const shown = items.length;
-    if (typeof total === "number") {
-      const start = shown === 0 ? 0 : 1;
-      return `Showing ${start}–${shown} of ${formatInt(total)}`;
-    }
-    // Unknown total
-    return `Showing ${items.length}`;
-  }, [items.length, total, term]);
+  // Load initial page
+  useEffect(() => {
+    fetchPage(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [term, category]);
+
+  const canLoadMore = items.length < total;
+  const showingStart = items.length > 0 ? 1 : 0;
+  const showingEnd = items.length;
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-6">
-      <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
-        {term ? (
-          <>Search results for ‘{term}’</>
-        ) : (
-          <>Search results</>
-        )}
-      </h1>
-      <p className="mt-1 text-sm text-gray-600">{term ? rangeLabel : "Enter a search term above."}</p>
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mb-4">
+        <h1 className="text-2xl font-semibold text-gray-900">{heading}</h1>
+        <p className="mt-1 text-sm text-gray-600">
+          {errorMsg
+            ? errorMsg
+            : `Showing ${showingStart}–${showingEnd} of ${total}`}
+        </p>
+      </div>
 
-      {/* Grid */}
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+      <div
+        className="
+          grid gap-4
+          grid-cols-1
+          sm:grid-cols-2
+          md:grid-cols-3
+          lg:grid-cols-4
+          xl:grid-cols-6
+        "
+      >
         {items.map((p) => (
-          <ProductCard key={`${p.id}-${p.min_price ?? ""}`} product={p} />
+          <ProductCard key={`${p.id}-${p.name}`} product={p} />
         ))}
       </div>
 
-      {/* Empty state */}
-      {!loading && term && items.length === 0 && (
-        <div className="mt-10 rounded-xl border border-gray-200 bg-white p-6 text-center text-gray-700">
-          No results. Try refining your search.
-        </div>
-      )}
-
-      {/* Load more */}
-      {term && items.length > 0 && !done && (
-        <div className="mt-8 flex justify-center">
+      {canLoadMore && (
+        <div className="mt-6 flex justify-center">
           <button
-            onClick={onLoadMore}
             disabled={loading}
-            className="rounded-xl bg-gray-900 px-4 py-2 text-white hover:bg-gray-800 disabled:opacity-60"
+            onClick={() => fetchPage(page + 1)}
+            className="rounded-2xl bg-gray-900 px-4 py-2 text-white shadow-sm hover:bg-gray-800 disabled:opacity-50"
           >
             {loading ? "Loading…" : "Load more"}
           </button>
+        </div>
+      )}
+
+      {!loading && items.length === 0 && !errorMsg && (
+        <div className="mt-10 text-center text-gray-600">
+          No results.
         </div>
       )}
     </div>

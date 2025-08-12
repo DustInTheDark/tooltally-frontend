@@ -1,44 +1,26 @@
-"use client";
-
+// components/ProductCard.js
 import Link from "next/link";
 import { formatGBP } from "@/utils/format";
 
 export default function ProductCard({ product }) {
-  if (!product) return null;
-
-  const {
-    id,
-    name,
-    category,
-    min_price: minPrice,
-    vendors_count: vendorsCount,
-  } = product;
+  const { id, name, category, min_price, vendors_count } = product || {};
+  const vendorsLabel =
+    vendors_count === 1 ? "1 vendor" : `${vendors_count ?? 0} vendors`;
 
   return (
-    <Link
-      href={`/products/${encodeURIComponent(id)}`}
-      className="block rounded-2xl border border-gray-200 bg-white p-4 shadow-sm hover:shadow-md transition-shadow"
-    >
-      {/* Title */}
-      <h3 className="text-base sm:text-lg font-semibold leading-snug text-gray-900 line-clamp-2">
-        {name || "Untitled product"}
-      </h3>
+    <Link href={`/products/${id}`} className="block">
+      <div className="h-full rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow">
+        <div className="mb-2 text-xs text-gray-500">{category || "—"}</div>
+        <div className="line-clamp-2 min-h-[3rem] text-base font-medium text-gray-900">
+          {name}
+        </div>
 
-      {/* Category (optional) */}
-      {category ? (
-        <p className="mt-1 text-sm text-gray-500">{category}</p>
-      ) : null}
-
-      {/* Meta row */}
-      <div className="mt-3 flex items-center justify-between">
-        <span className="text-sm text-gray-600">
-          {typeof vendorsCount === "number"
-            ? `${vendorsCount} vendor${vendorsCount === 1 ? "" : "s"}`
-            : "—"}
-        </span>
-        <span className="text-base sm:text-lg font-semibold text-gray-900">
-          {typeof minPrice === "number" ? formatGBP(minPrice) : "—"}
-        </span>
+        <div className="mt-3 flex items-baseline justify-between">
+          <div className="text-lg font-semibold">
+            {formatGBP(min_price)}
+          </div>
+          <div className="text-xs text-gray-600">{vendorsLabel}</div>
+        </div>
       </div>
     </Link>
   );
