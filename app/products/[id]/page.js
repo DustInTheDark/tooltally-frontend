@@ -1,85 +1,78 @@
 // app/products/[id]/page.js
-"use client";
+import { headers } from "next/headers";
+import { formatGBP } from "@/utils/format";
 
-import { useEffect, useState } from "react";
+// Server Component
+export default async function ProductDetailPage({ params }) {
+  // Next.js 15: params may be a Promise; unwrap it.
+  const { id } = await params;
 
-function gbp(x) {
-  const n = Number(x);
-  return Number.isFinite(n) ? `£${n.toFixed(2)}` : "£0.00";
-}
+  // Build absolute origin so /api route works in server context
+  const h = headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const proto = h.get("x-forwarded-proto") ?? "http";
+  const origin = `${proto}://${host}`;
 
-export default function ProductDetailPage({ params }) {
-  const { id } = params;
-  const [product, setProduct] = useState(null);  // { id, name, category, vendors: [{vendor, price, buy_url}] }
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  // Fetch via Next.js proxy -> Flask
+  const res = await fetch(`${origin}/api/products/${encodeURIComponent(id)}`, {
+    cache: "no-store",
+  });
 
-  useEffect(() => {
-    let cancelled = false;
-    async function run() {
-      setError("");
-      try {
-        setLoading(true);
-        const res = await fetch(`/api/products/${id}`, { cache: "no-store" });
-        if (!res.ok) {
-          if (res.status === 404) {
-            if (!cancelled) setError("Product not found.");
-            return;
-          }
-          throw new Error(`API ${res.status} ${res.statusText}`);
-        }
-        const data = await res.json();
-        if (!cancelled) setProduct(data);
-      } catch (e) {
-        console.error(e);
-        if (!cancelled) setError("Failed to load product details. Please try again.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    run();
-    return () => { cancelled = true; };
-  }, [id]);
+  if (!res.ok) {
+    // Soft error UI
+    return (
+      <div className="mx-auto max-w-5xl px-4 py-8">
+        <h1 className="text-2xl font-semibold text-gray-900">Product not found</h1>
+        <p className="mt-2 text-gray-600">
+          The product could not be loaded (status {res.status}).
+        </p>
+      </div>
+    );
+  }
+
+  const data = await res.json();
+  const { name, category } = data || {};
+  // Ensure we render ALL offers; the proxy already sorts by ascending price.
+  const vendors = Array.isArray(data?.vendors) ? data.vendors : [];
 
   return (
-    <main className="container mx-auto px-4 py-8">
-      {loading && <p className="text-gray-600">Loading product details…</p>}
-      {!loading && error && <p className="text-red-600">{error}</p>}
+    <div className="mx-auto max-w-5xl px-4 py-8">
+      <h1 className="text-3xl font-semibold text-gray-100">{name}</h1>
+      <div className="mt-1 text-sm text-gray-300">{category}</div>
 
-      {!loading && !error && product && (
-        <>
-          <h1 className="text-2xl font-bold mb-2">{product.name}</h1>
-          {product.category && (
-            <p className="mb-6 text-sm text-gray-600">{product.category}</p>
-          )}
+      <div className="mt-6 space-y-3">
+        {vendors.map((v, idx) => (
+          <div
+            key={`${v.vendor}-${idx}-${v.price ?? "na"}`}
+            className="rounded-2xl bg-white p-4 shadow-sm"
+          >
+            <div className="flex items-center justify-between gap-4">
+              <div className="text-gray-900">{v.vendor}</div>
+              <div className="flex items-center gap-4">
+                <div className="font-semibold">{formatGBP(v.price)}</div>
+                {v.buy_url ? (
+                  <a
+                    href={v.buy_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-xl bg-indigo-600 px-3 py-1.5 text-white hover:bg-indigo-500"
+                  >
+                    Buy
+                  </a>
+                ) : (
+                  <span className="text-sm text-gray-500">No link</span>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
 
-          {Array.isArray(product.vendors) && product.vendors.length > 0 ? (
-            <ul className="space-y-4">
-              {product.vendors.map((v, i) => (
-                <li
-                  key={`${v.vendor}-${i}`}
-                  className="flex items-center justify-between border border-gray-300 rounded-lg p-4 bg-white"
-                >
-                  <div className="font-medium text-gray-800">{v.vendor}</div>
-                  <div className="flex items-center gap-4">
-                    <div className="font-semibold text-gray-900">{gbp(v.price)}</div>
-                    <a
-                      href={v.buy_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="bg-blue-600 text-white text-sm font-medium px-3 py-2 rounded hover:opacity-95"
-                    >
-                      Buy
-                    </a>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-gray-600">No vendors available for this product.</p>
-          )}
-        </>
-      )}
-    </main>
+        {vendors.length === 0 && (
+          <div className="rounded-2xl bg-white p-4 text-gray-600">
+            No offers found.
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

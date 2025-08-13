@@ -2,9 +2,9 @@
 import { NextResponse } from "next/server";
 
 export async function GET(_request, context) {
-  // In Next.js 15, context.params may be a Promise in route handlers.
   const maybePromise = context?.params;
-  const p = typeof maybePromise?.then === "function" ? await maybePromise : maybePromise;
+  const p =
+    typeof maybePromise?.then === "function" ? await maybePromise : maybePromise;
   const { id } = p || {};
 
   if (!id) {
@@ -24,7 +24,6 @@ export async function GET(_request, context) {
     }
     const data = await res.json();
 
-    // Ensure vendors sorted by ascending price
     if (data && Array.isArray(data.vendors)) {
       data.vendors = data.vendors
         .map((v) => ({
