@@ -7,6 +7,13 @@ import ProductCard from "@/components/ProductCard";
 
 const PAGE_SIZE = 24;
 
+// Simple name/category normalizer to dedupe visually similar rows
+function normalizeKey(name, category) {
+  const n = (name || "").toLowerCase().replace(/[\s/_-]+/g, " ").trim();
+  const c = (category || "").toLowerCase().trim();
+  return `${n}__${c}`;
+}
+
 export default function ProductsPage() {
   const sp = useSearchParams();
   const term = (sp.get("search") || "").trim();
@@ -25,16 +32,19 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Prevent double initial fetch in React Strict Mode (dev)
+  // Track which normalized products we've already shown
+  const seenKeysRef = useRef(new Set());
+  // Prevent duplicate initial fetch in React Strict Mode (dev)
   const hasFetchedRef = useRef(false);
 
-  // Reset list when query changes
+  // Reset when query changes
   useEffect(() => {
     setItems([]);
     setTotal(0);
     setPage(1);
     setErrorMsg("");
-    hasFetchedRef.current = false; // allow a fresh initial fetch
+    seenKeysRef.current = new Set();
+    hasFetchedRef.current = false;
   }, [term, category]);
 
   const fetchPage = async (p) => {
@@ -54,9 +64,20 @@ export default function ProductsPage() {
       const data = await res.json();
       const pageItems = Array.isArray(data.items) ? data.items : [];
 
-      // Merge safely and set total correctly even if backend omitted it
+      // Deduplicate by normalized (name + category). Only append new ones.
+      const deduped = [];
+      for (const it of pageItems) {
+        const k = normalizeKey(it.name, it.category);
+        if (!seenKeysRef.current.has(k)) {
+          seenKeysRef.current.add(k);
+          deduped.push(it);
+        }
+      }
+
       setItems((prev) => {
-        const merged = [...prev, ...pageItems];
+        const merged = [...prev, ...deduped];
+        // Keep showing backend total (count of rows available),
+        // but if backend omitted it, fall back to how many unique items we have so far.
         setTotal(Number.isFinite(data.total) ? data.total : merged.length);
         return merged;
       });
@@ -69,7 +90,7 @@ export default function ProductsPage() {
     }
   };
 
-  // Initial load (guarded against double-run)
+  // Initial load (guarded)
   useEffect(() => {
     if (hasFetchedRef.current) return;
     hasFetchedRef.current = true;
@@ -77,6 +98,7 @@ export default function ProductsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [term, category]);
 
+  // We can still rely on backend `total` to decide if more pages exist.
   const canLoadMore = items.length < total;
   const showingStart = items.length > 0 ? 1 : 0;
   const showingEnd = items.length;
@@ -101,7 +123,7 @@ export default function ProductsPage() {
         "
       >
         {items.map((p) => (
-          <ProductCard key={`${p.id}-${p.name}`} product={p} />
+          <ProductCard key={`${p.id}-${normalizeKey(p.name, p.category)}`} product={p} />
         ))}
       </div>
 
