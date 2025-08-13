@@ -2,37 +2,31 @@
 import { headers } from "next/headers";
 import { formatGBP } from "@/utils/format";
 
-// Server Component
 export default async function ProductDetailPage({ params }) {
   // Next.js 15: params may be a Promise; unwrap it.
   const { id } = await params;
 
-  // Build absolute origin so /api route works in server context
-  const h = headers();
+  // Next.js 15: headers() should be awaited.
+  const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host");
   const proto = h.get("x-forwarded-proto") ?? "http";
   const origin = `${proto}://${host}`;
 
-  // Fetch via Next.js proxy -> Flask
   const res = await fetch(`${origin}/api/products/${encodeURIComponent(id)}`, {
     cache: "no-store",
   });
 
   if (!res.ok) {
-    // Soft error UI
     return (
       <div className="mx-auto max-w-5xl px-4 py-8">
         <h1 className="text-2xl font-semibold text-gray-900">Product not found</h1>
-        <p className="mt-2 text-gray-600">
-          The product could not be loaded (status {res.status}).
-        </p>
+        <p className="mt-2 text-gray-600">The product could not be loaded (status {res.status}).</p>
       </div>
     );
   }
 
   const data = await res.json();
   const { name, category } = data || {};
-  // Ensure we render ALL offers; the proxy already sorts by ascending price.
   const vendors = Array.isArray(data?.vendors) ? data.vendors : [];
 
   return (
@@ -42,10 +36,7 @@ export default async function ProductDetailPage({ params }) {
 
       <div className="mt-6 space-y-3">
         {vendors.map((v, idx) => (
-          <div
-            key={`${v.vendor}-${idx}-${v.price ?? "na"}`}
-            className="rounded-2xl bg-white p-4 shadow-sm"
-          >
+          <div key={`${v.vendor}-${idx}-${v.price ?? "na"}`} className="rounded-2xl bg-white p-4 shadow-sm">
             <div className="flex items-center justify-between gap-4">
               <div className="text-gray-900">{v.vendor}</div>
               <div className="flex items-center gap-4">
@@ -68,9 +59,7 @@ export default async function ProductDetailPage({ params }) {
         ))}
 
         {vendors.length === 0 && (
-          <div className="rounded-2xl bg-white p-4 text-gray-600">
-            No offers found.
-          </div>
+          <div className="rounded-2xl bg-white p-4 text-gray-600">No offers found.</div>
         )}
       </div>
     </div>
