@@ -1,67 +1,89 @@
 // app/products/[id]/page.js
-import { headers } from "next/headers";
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { useParams } from "next/navigation";
 import { formatGBP } from "@/utils/format";
 
-export default async function ProductDetailPage({ params }) {
-  // Next.js 15: params may be a Promise; unwrap it.
-  const { id } = await params;
+export default function ProductDetailPage() {
+  const { id } = useParams();
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Next.js 15: headers() should be awaited.
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host");
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  const origin = `${proto}://${host}`;
+  useEffect(() => {
+    async function load() {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/products/${id}`, { cache: "no-store" });
+        if (res.ok) {
+          setProduct(await res.json());
+        } else {
+          setProduct(null);
+        }
+      } catch (e) {
+        console.error(e);
+        setProduct(null);
+      } finally {
+        setLoading(false);
+      }
+    }
+    if (id) load();
+  }, [id]);
 
-  const res = await fetch(`${origin}/api/products/${encodeURIComponent(id)}`, {
-    cache: "no-store",
-  });
+  const offers = useMemo(() => {
+    const arr = product?.offers ?? product?.vendors ?? [];
+    // Support either shape:
+    // normalized offers: { vendor_name, price, url, vendor_sku }
+    // backend vendors:  { vendor, price, buy_url }
+    const mapped = arr.map((v) => ({
+      vendor_name: v.vendor_name ?? v.vendor ?? v.name ?? "Vendor",
+      price: v.price,
+      url: v.url ?? v.buy_url,
+      vendor_sku: v.vendor_sku ?? v.sku ?? null,
+    }));
+    return mapped.sort((a, b) => (a.price ?? Infinity) - (b.price ?? Infinity));
+  }, [product]);
 
-  if (!res.ok) {
-    return (
-      <div className="mx-auto max-w-5xl px-4 py-8">
-        <h1 className="text-2xl font-semibold text-gray-900">Product not found</h1>
-        <p className="mt-2 text-gray-600">The product could not be loaded (status {res.status}).</p>
-      </div>
-    );
-  }
-
-  const data = await res.json();
-  const { name, category } = data || {};
-  const vendors = Array.isArray(data?.vendors) ? data.vendors : [];
+  if (loading) return <div className="p-6">Loading…</div>;
+  if (!product) return <div className="p-6">Not found</div>;
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      <h1 className="text-3xl font-semibold text-gray-100">{name}</h1>
-      <div className="mt-1 text-sm text-gray-300">{category}</div>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold text-gray-900">{product.name}</h1>
+      <p className="text-gray-500">{product.category}</p>
 
-      <div className="mt-6 space-y-3">
-        {vendors.map((v, idx) => (
-          <div key={`${v.vendor}-${idx}-${v.price ?? "na"}`} className="rounded-2xl bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between gap-4">
-              <div className="text-gray-900">{v.vendor}</div>
+      <h2 className="text-xl font-semibold mt-6 mb-3">Available from</h2>
+      {offers.length === 0 ? (
+        <p className="text-sm text-gray-500">No offers found.</p>
+      ) : (
+        <ul className="divide-y">
+          {offers.map((o, i) => (
+            <li key={i} className="py-3 flex justify-between items-center">
+              <div>
+                <span className="font-medium">{o.vendor_name}</span>
+                {o.vendor_sku ? (
+                  <span className="text-sm text-gray-400 ml-2">{o.vendor_sku}</span>
+                ) : null}
+              </div>
               <div className="flex items-center gap-4">
-                <div className="font-semibold">{formatGBP(v.price)}</div>
-                {v.buy_url ? (
+                <span className="font-bold text-green-600">
+                  {formatGBP(o.price)}
+                </span>
+                {o.url ? (
                   <a
-                    href={v.buy_url}
+                    href={o.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="rounded-xl bg-indigo-600 px-3 py-1.5 text-white hover:bg-indigo-500"
+                    className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
                   >
                     Buy
                   </a>
-                ) : (
-                  <span className="text-sm text-gray-500">No link</span>
-                )}
+                ) : null}
               </div>
-            </div>
-          </div>
-        ))}
-
-        {vendors.length === 0 && (
-          <div className="rounded-2xl bg-white p-4 text-gray-600">No offers found.</div>
-        )}
-      </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
