@@ -1,11 +1,14 @@
 // app/products/page.js
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import ProductCard from "@/components/ProductCard";
 
-export default function ProductsPage({ searchParams }) {
-  const term = searchParams?.search || "";
+export default function ProductsPage() {
+  const searchParams = useSearchParams();
+  const term = useMemo(() => searchParams.get("search") || "", [searchParams]);
+
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -15,10 +18,13 @@ export default function ProductsPage({ searchParams }) {
   async function fetchProducts(p) {
     setLoading(true);
     try {
-      const res = await fetch(
-        `/api/products?search=${encodeURIComponent(term)}&page=${p}&limit=${limit}`,
-        { cache: "no-store" }
-      );
+      const qs = new URLSearchParams({
+        search: term,
+        page: String(p),
+        limit: String(limit),
+      }).toString();
+
+      const res = await fetch(`/api/products?${qs}`, { cache: "no-store" });
       const data = await res.json();
 
       if (data?.items) {
@@ -27,14 +33,22 @@ export default function ProductsPage({ searchParams }) {
       } else if (Array.isArray(data)) {
         setItems((prev) => (p === 1 ? data : [...prev, ...data]));
         setTotal(data.length);
+      } else {
+        setItems([]);
+        setTotal(0);
       }
     } catch (e) {
       console.error("Failed to fetch products", e);
+      if (p === 1) {
+        setItems([]);
+        setTotal(0);
+      }
     } finally {
       setLoading(false);
     }
   }
 
+  // Load on first mount and whenever the term changes
   useEffect(() => {
     setItems([]);
     setPage(1);

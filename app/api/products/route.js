@@ -1,34 +1,59 @@
 // app/api/products/route.js
+// Proxies the frontend to the local Flask backend.
+// Maps `/api/products?search=Makita DHP484` → `http://127.0.0.1:5000/search?query=Makita%20DHP484`
+
+const BACKEND_BASE =
+  process.env.BACKEND_BASE ||
+  process.env.NEXT_PUBLIC_BACKEND_BASE ||
+  "http://127.0.0.1:5000";
+
 export async function GET(req) {
-  const { searchParams } = new URL(req.url);
-  const search = searchParams.get("search") || "";
-  const category = searchParams.get("category") || "";
-  const page = searchParams.get("page") || "1";
-  const limit = searchParams.get("limit") || "24";
+  try {
+    const urlIn = new URL(req.url);
+    const search = (urlIn.searchParams.get("search") || "").trim();
 
-  const backend = process.env.BACKEND_API_URL;
-  const url = `${backend}/products?search=${encodeURIComponent(
-    search
-  )}&category=${encodeURIComponent(category)}&page=${page}&limit=${limit}`;
+    if (!search) {
+      return Response.json(
+        { product_info: {}, offers: [] },
+        { status: 200 }
+      );
+    }
 
-  const res = await fetch(url, { cache: "no-store" });
-  const data = await res.json();
+    const backendUrl = `${BACKEND_BASE}/search?query=${encodeURIComponent(
+      search
+    )}`;
 
-  // Normalize to { items, total, page, limit } if backend ever returns a bare array
-  if (Array.isArray(data)) {
-    return Response.json({
-      items: data,
-      total: data.length,
-      page: Number(page),
-      limit: Number(limit),
-    });
+    const res = await fetch(backendUrl, { cache: "no-store" });
+    const text = await res.text(); // read as text first to handle non-JSON errors
+
+    if (!res.ok) {
+      // Bubble up backend message for easier debugging in the browser
+      return new Response(text || `Backend ${res.status}`, {
+        status: res.status,
+        headers: { "content-type": "text/plain" },
+      });
+    }
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      return Response.json(
+        {
+          error: "Invalid JSON from backend",
+          hint: "Is Flask running on 127.0.0.1:5000 and returning JSON?",
+          sample: text.slice(0, 200),
+        },
+        { status: 502 }
+      );
+    }
+
+    // Pass-through: frontend expects { product_info, offers }
+    return Response.json(data, { status: 200 });
+  } catch (err) {
+    return Response.json(
+      { error: String(err || "Unknown error in /api/products route") },
+      { status: 500 }
+    );
   }
-
-  // Otherwise pass through (backend already returns { items, total, page, limit })
-  return Response.json({
-    items: data.items ?? [],
-    total: data.total ?? (data.items ? data.items.length : 0),
-    page: Number(data.page ?? page),
-    limit: Number(data.limit ?? limit),
-  });
 }
