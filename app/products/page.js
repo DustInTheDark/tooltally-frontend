@@ -13,6 +13,29 @@ function currency(v) {
   return `£${Number(v).toFixed(2)}`;
 }
 
+function dedupeAndSortCategories(raw) {
+  const toSlug = (s) =>
+    (s || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/-{2,}/g, '-')
+      .replace(/^-|-$/g, '') || 'uncategorized';
+
+  const map = new Map();
+  for (const c of Array.isArray(raw) ? raw : []) {
+    const slug = c.slug || toSlug(c.name);
+    const prev = map.get(slug);
+    if (prev) {
+      prev.count += Number(c.count || 0);
+    } else {
+      map.set(slug, { name: c.name, slug, count: Number(c.count || 0) });
+    }
+  }
+  // alphabetical A→Z
+  return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+}
+
 export default function ProductsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -27,13 +50,13 @@ export default function ProductsPage() {
   const [cats, setCats] = React.useState([]);
   const [catsLoading, setCatsLoading] = React.useState(true);
 
-  // fetch categories once
+  // fetch categories once (even if we don't render them)
   React.useEffect(() => {
     (async () => {
       try {
         const res = await fetch('/api/categories', { cache: 'no-store' });
         const json = await res.json();
-        setCats(Array.isArray(json.items) ? json.items : []);
+        setCats(dedupeAndSortCategories(json.items));
       } catch (e) {
         console.error('categories fetch failed', e);
         setCats([]);
@@ -67,7 +90,7 @@ export default function ProductsPage() {
     const url = new URL(window.location.href);
     const params = new URLSearchParams(url.search);
     if (term) params.set('search', term); else params.delete('search');
-    // keep current category selection
+    // keep current category if any
     router.push(`/products?${params.toString()}`);
   };
 
@@ -77,6 +100,8 @@ export default function ProductsPage() {
     if (name) params.set('category', name); else params.delete('category');
     router.push(`/products?${params.toString()}`);
   };
+
+  const showCategories = !q && !cat; // <- hide categories when searching OR category selected
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -94,45 +119,45 @@ export default function ProductsPage() {
         <Button className="h-12 px-6 bg-slate-900 hover:bg-slate-800">Search</Button>
       </form>
 
-      {/* Categories */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-slate-900">Categories</h2>
-          {cat && (
+      {/* Categories (only when no search & no category) */}
+      {showCategories && (
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold text-slate-900">Categories</h2>
             <button
               className="text-sm text-slate-600 underline"
               onClick={() => onPickCategory('', '')}
+              disabled
+              title="No category filter active"
             >
               Clear filter
             </button>
+          </div>
+
+          {catsLoading ? (
+            <p className="text-slate-500">Loading categories…</p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {cats.map((c, idx) => {
+                return (
+                  <button
+                    key={`${c.slug}-${idx}`}
+                    onClick={() => onPickCategory(c.slug, c.name)}
+                    className="text-left"
+                  >
+                    <Card className="border-2 border-slate-200 hover:border-slate-300 transition h-full">
+                      <CardContent className="p-4">
+                        <div className="font-medium text-slate-900">{c.name}</div>
+                        <div className="text-xs text-slate-600">{c.count} items</div>
+                      </CardContent>
+                    </Card>
+                  </button>
+                );
+              })}
+            </div>
           )}
         </div>
-
-        {catsLoading ? (
-          <p className="text-slate-500">Loading categories…</p>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            {cats.map((c) => {
-              const active = c.name === cat;
-              return (
-                <button
-                  key={c.slug}
-                  onClick={() => onPickCategory(c.slug, c.name)}
-                  className={
-                    'text-left rounded-xl border-2 px-4 py-3 transition ' +
-                    (active
-                      ? 'border-slate-900 bg-slate-900/5'
-                      : 'border-slate-200 hover:border-slate-300')
-                  }
-                >
-                  <div className="font-medium text-slate-900">{c.name}</div>
-                  <div className="text-xs text-slate-600">{c.count} items</div>
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      )}
 
       {/* Results */}
       {loading && <p className="text-slate-500">Loading…</p>}
@@ -166,6 +191,17 @@ export default function ProductsPage() {
           </Link>
         ))}
       </div>
+
+      {!loading && total > items.length && (
+        <div className="text-center mt-6">
+          <Button
+            variant="outline"
+            onClick={() => router.push(`/products?search=${encodeURIComponent(q)}&category=${encodeURIComponent(cat)}&page=2`)}
+          >
+            Load More
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
