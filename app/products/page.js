@@ -123,40 +123,34 @@ export default function ProductsPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-semibold text-slate-900">Categories</h2>
+            <button
+              className="text-sm text-slate-600 underline"
+              disabled
+              title="No category filter active"
+            >
+              Clear filter
+            </button>
           </div>
 
           {catsLoading ? (
             <p className="text-slate-500">Loading categories…</p>
           ) : (
-            <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                {cats.slice(0, visibleCount).map((c, idx) => (
-                  <button
-                    key={`${c.slug}-${idx}`}
-                    onClick={() => onPickCategory(c.slug, c.name)}
-                    className="text-left"
-                  >
-                    <Card className="border-2 border-slate-200 hover:border-slate-300 transition h-full">
-                      <CardContent className="p-4">
-                        <div className="font-medium text-slate-900">{c.name}</div>
-                        <div className="text-xs text-slate-600">{c.count} items</div>
-                      </CardContent>
-                    </Card>
-                  </button>
-                ))}
-              </div>
-
-              {visibleCount < cats.length && (
-                <div className="flex justify-center mt-4">
-                  <Button
-                    className="px-6 py-2 bg-slate-900 hover:bg-slate-800"
-                    onClick={() => setVisibleCount((prev) => prev + 12)}
-                  >
-                    Load More
-                  </Button>
-                </div>
-              )}
-            </>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {cats.map((c, idx) => (
+                <button
+                  key={`${c.slug}-${idx}`}
+                  onClick={() => onPickCategory(c.slug, c.name)}
+                  className="text-left"
+                >
+                  <Card className="border-2 border-slate-200 hover:border-slate-300 transition h-full">
+                    <CardContent className="p-4">
+                      <div className="font-medium text-slate-900">{c.name}</div>
+                      <div className="text-xs text-slate-600">{c.count} items</div>
+                    </CardContent>
+                  </Card>
+                </button>
+              ))}
+            </div>
           )}
         </div>
       )}
