@@ -32,7 +32,6 @@ function dedupeAndSortCategories(raw) {
       map.set(slug, { name: c.name, slug, count: Number(c.count || 0) });
     }
   }
-  // alphabetical A→Z
   return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
 }
 
@@ -42,15 +41,21 @@ export default function ProductsPage() {
   const q = searchParams.get('search') || '';
   const cat = searchParams.get('category') || '';
 
+  // product list state
   const [items, setItems] = React.useState([]);
   const [total, setTotal] = React.useState(0);
+  const [page, setPage] = React.useState(1);
+  const [limit] = React.useState(24);
   const [loading, setLoading] = React.useState(false);
+  const [loadingMore, setLoadingMore] = React.useState(false);
   const [term, setTerm] = React.useState(q);
 
+  // categories (shown only when no search & no category)
   const [cats, setCats] = React.useState([]);
   const [catsLoading, setCatsLoading] = React.useState(true);
+  const [visibleCatCount, setVisibleCatCount] = React.useState(12);
 
-  // fetch categories once (even if we don't always render them)
+  // fetch categories once
   React.useEffect(() => {
     (async () => {
       try {
@@ -66,41 +71,80 @@ export default function ProductsPage() {
     })();
   }, []);
 
-  const fetchList = React.useCallback(async (search, category) => {
-    setLoading(true);
-    try {
-      const url = `/api/products?search=${encodeURIComponent(search)}&category=${encodeURIComponent(category)}&page=1&limit=24`;
+  // fetch a page of products
+  const fetchPage = React.useCallback(
+    async ({ search, category, pageNum }) => {
+      const url = `/api/products?search=${encodeURIComponent(search)}&category=${encodeURIComponent(category)}&page=${pageNum}&limit=${limit}`;
       const res = await fetch(url, { cache: 'no-store' });
       const data = await res.json();
-      setItems(Array.isArray(data.items) ? data.items : []);
-      setTotal(Number(data.total || 0));
-    } catch (e) {
-      console.error('List fetch failed', e);
-      setItems([]);
-      setTotal(0);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      const list = Array.isArray(data.items) ? data.items : [];
+      return { list, total: Number(data.total || 0) };
+    },
+    [limit]
+  );
 
-  React.useEffect(() => { fetchList(q, cat); }, [q, cat, fetchList]);
+  // initial / filter change → reset list to page 1
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setLoadingMore(false);
+      setPage(1);
+      try {
+        const { list, total } = await fetchPage({ search: q, category: cat, pageNum: 1 });
+        if (!cancelled) {
+          setItems(list);
+          setTotal(total);
+        }
+      } catch (e) {
+        if (!cancelled) {
+          console.error('List fetch failed', e);
+          setItems([]);
+          setTotal(0);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [q, cat, fetchPage]);
+
+  // load more handler (append next page)
+  const onLoadMore = async () => {
+    const next = page + 1;
+    setLoadingMore(true);
+    try {
+      const { list } = await fetchPage({ search: q, category: cat, pageNum: next });
+      setItems((prev) => [...prev, ...list]);
+      setPage(next);
+    } catch (e) {
+      console.error('Load more failed', e);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const onSubmit = (e) => {
     e.preventDefault();
     const url = new URL(window.location.href);
     const params = new URLSearchParams(url.search);
     if (term) params.set('search', term); else params.delete('search');
+    // preserve category if present
+    if (cat) params.set('category', cat);
     router.push(`/products?${params.toString()}`);
   };
 
-  const onPickCategory = (slug, name) => {
+  const onPickCategory = (_slug, name) => {
     const url = new URL(window.location.href);
     const params = new URLSearchParams(url.search);
     if (name) params.set('category', name); else params.delete('category');
+    // clear search when picking a category on this page
+    params.delete('search');
     router.push(`/products?${params.toString()}`);
   };
 
-  const showCategories = !q && !cat; // hide categories when searching OR a category is selected
+  const showCategories = !q && !cat; // only when no search & no category
+  const canLoadMore = items.length < total;
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -123,34 +167,40 @@ export default function ProductsPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-semibold text-slate-900">Categories</h2>
-            <button
-              className="text-sm text-slate-600 underline"
-              disabled
-              title="No category filter active"
-            >
-              Clear filter
-            </button>
           </div>
 
           {catsLoading ? (
             <p className="text-slate-500">Loading categories…</p>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-              {cats.map((c, idx) => (
-                <button
-                  key={`${c.slug}-${idx}`}
-                  onClick={() => onPickCategory(c.slug, c.name)}
-                  className="text-left"
-                >
-                  <Card className="border-2 border-slate-200 hover:border-slate-300 transition h-full">
-                    <CardContent className="p-4">
-                      <div className="font-medium text-slate-900">{c.name}</div>
-                      <div className="text-xs text-slate-600">{c.count} items</div>
-                    </CardContent>
-                  </Card>
-                </button>
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {cats.slice(0, visibleCatCount).map((c, idx) => (
+                  <button
+                    key={`${c.slug}-${idx}`}
+                    onClick={() => onPickCategory(c.slug, c.name)}
+                    className="text-left"
+                  >
+                    <Card className="border-2 border-slate-200 hover:border-slate-300 transition h-full">
+                      <CardContent className="p-4">
+                        <div className="font-medium text-slate-900">{c.name}</div>
+                        <div className="text-xs text-slate-600">{c.count} items</div>
+                      </CardContent>
+                    </Card>
+                  </button>
+                ))}
+              </div>
+
+              {visibleCatCount < cats.length && (
+                <div className="flex justify-center mt-5">
+                  <Button
+                    className="px-6 py-2 bg-slate-900 hover:bg-slate-800"
+                    onClick={() => setVisibleCatCount((n) => n + 12)}
+                  >
+                    Load More
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
@@ -199,6 +249,19 @@ export default function ProductsPage() {
           </Link>
         ))}
       </div>
+
+      {/* Product list Load More */}
+      {!loading && canLoadMore && (
+        <div className="flex justify-center mt-6">
+          <Button
+            variant="outline"
+            onClick={onLoadMore}
+            disabled={loadingMore}
+          >
+            {loadingMore ? 'Loading…' : 'Load More'}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
