@@ -1,334 +1,149 @@
-# tooltally-frontend/README.md
-
-````markdown
 # ToolTally — Frontend (Next.js 15 + Tailwind)
 
-UK tool price comparison UI. Uses the App Router and a built‑in proxy so the browser calls our Next.js `/api/*` routes, which forward to the Flask backend (no CORS issues).
+A modern App Router Next.js UI for ToolTally, a UK power tool price comparison site.
 
-## Stack
-- Next.js 15.4.x (App Router)
-- React 18
-- Tailwind CSS
-- Node 18+ (LTS) or Node 20+
-
-## Quick start
-
-1) Install
-```bash
-npm i
-````
-
-2. Configure
-   Create `.env.local` in the repo root:
-
-```
-# Local Flask API (default dev address)
-BACKEND_API_URL=http://127.0.0.1:5000
-```
-
-3. Run dev server
-
-```bash
-npm run dev
-# http://localhost:3000
-```
-
-## How data flows
-
-**Browser** → `GET /api/products?...` → **Next.js proxy** → `GET {BACKEND_API_URL}/products?...` (Flask)
-
-The proxy normalizes/guards the response so the UI always receives a consistent shape.
-
-### Frontend API routes (proxy)
-
-* `GET /api/products?search=<term>&category=<optional>&page=<optional>&limit=<optional>`
-
-  * Proxies to Flask and groups/dedupes if the backend returns vendor‑level rows.
-  * If server‑side pagination is enabled in the proxy, it returns:
-
-    ```json
-    {
-      "items": [
-        { "id": 123, "name": "...", "category": "...", "min_price": 12.34, "vendors_count": 3 }
-      ],
-      "total": 312, "page": 1, "limit": 24
-    }
-    ```
-
-    Otherwise, it returns a plain array of normalized products.
-
-* `GET /api/products/:id`
-
-  * Proxies to Flask `/products/:id` and returns:
-
-    ```json
-    {
-      "id": 123, "name": "...", "category": "...",
-      "vendors": [ { "vendor": "Toolstation", "price": 12.34, "buy_url": "..." } ]
-    }
-    ```
-
-> In development, the proxy calls use `fetch(..., { cache: "no-store" })` to avoid stale data.
-
-## UI behavior
-
-* `/products?search=<term>` shows a grid of **unique products**.
-* Each card renders:
-
-  * **Name** (explicit `text-gray-900` so the title is always visible on white cards),
-  * Category (if available),
-  * Left: `N vendor(s)` (when present),
-  * Right: **GBP min price** (`£12.34`).
-* Client‑side pagination: **24 per page** with a **Load more** button that appends the next 24. If the proxy returns `{items,total,page,limit}`, the page uses that; otherwise it paginates in the browser.
-* Clicking a card → `/products/[id]` detail page listing all vendor offers (sorted by price) with **Buy** links opening in a new tab.
-
-## Aliases & utils
-
-Path alias in `jsconfig.json`:
-
-```json
-{
-  "compilerOptions": { "paths": { "@/*": ["./*"] } }
-}
-```
-
-Utility helpers in `utils/format.js`:
-
-* `formatGBP(value)` – uses `Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" })`
-* `pluralize(count, one, many)` – simple pluralizer for labels like `vendor(s)`
-
-## Production build
-
-```bash
-npm run build
-npm run start
-```
-
-Ensure `BACKEND_API_URL` points at your deployed Flask API.
-
-## Troubleshooting
-
-* **Invisible product titles**: fixed by adding `text-gray-900` to the card title.
-* **CORS**: avoided by the Next.js proxy; the browser never talks to Flask directly.
-* **API 404/ECONNREFUSED**: make sure Flask is running and the DB has data (see scrapers README for `migrate.py`, scrapers, and `resolver.py`).
-* **Windows**: prefer PowerShell or Git Bash; no WSL required.
-
-````
+- **Framework:** Next.js 15 (App Router, Turbopack)
+- **Styling:** Tailwind + minimal UI primitives
+- **API bridge:** Internal `/api/*` routes proxy to the Flask backend (`compat_search.py`)
+- **Key features:** Search, category browsing (A→Z), category cards with **Load More**, product list pagination with **Load More**, vendor offer links, product images (scraped & cached by backend)
 
 ---
 
-# tooltally-scrapers/README.md
+## Quick Start
 
-```markdown
-# ToolTally — Scrapers & API (Flask + SQLite + Scrapy)
+> **Requires** the backend running at `http://127.0.0.1:5000`. See the scrapers repo README for backend setup.
 
-Scrapes UK tool retailers into a staging table (`raw_offers`), resolves them into canonical `products` + `offers`, and serves a Flask API used by the frontend.
+```bash
+# 1) Install deps
+npm install
 
-## Stack
-- Python 3.11+ (tested on 3.12)
-- Scrapy 2.13
-- Flask
-- SQLite (DB file at `data/tooltally.db` by default)
+# 2) Configure API base (create if missing)
+#   .env.local
+#   NEXT_PUBLIC_BACKEND_BASE=http://127.0.0.1:5000
+#
+#   (You can also set BACKEND_BASE, but NEXT_PUBLIC_BACKEND_BASE is sufficient.)
 
-## Data flow
+# 3) Run dev server
+npm run dev
 
-````
-
-Scrapers  ──►  raw\_offers (staging)
-Resolver  ──►  products (unique) + offers (per vendor)
-Flask API ──►  /products, /products/\:id, /categories
-Frontend  ──►  Next.js proxy uses the API
-
-````
-
-## Quick start (Windows PowerShell shown; macOS/Linux: use `python3`)
-
-### 1) Install
-```powershell
-py -m venv .venv
-. .venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-````
-
-### 2) Ensure schema
-
-```powershell
-py scripts\migrate.py
-# Creates tables if missing and applies lightweight migrations (e.g. adds offers.created_at)
+# 4) Open the app
+# http://localhost:3000
 ```
 
-### 3) Scrape data
+What each command does:
 
-Run scrapers individually:
+- `npm install` — installs frontend dependencies.
+- `npm run dev` — runs the Next.js dev server with Turbopack (fast refresh).
+- `.env.local` — sets the backend base URL used by the internal API routes.
 
-```powershell
-py scripts\scrape_toolstation.py
-py scripts\scrape_screwfix.py
-py scripts\scrape_toolstop.py
-py scripts\scrape_dandm.py
+---
+
+## Project Structure (key files)
+
+```
+app/
+  page.js                    # Homepage with search + category cards (+ Load More)
+  products/
+    page.js                  # Search results & category browse (product pagination + Load More)
+    [id]/page.js             # Product detail page (offers with vendor links)
+  api/
+    categories/route.js      # Proxies GET /categories to backend
+    products/route.js        # Proxies GET /products to backend
+    products/[id]/route.js   # Proxies GET /product/<id> to backend (404-safe JSON)
+components/
+  ui/
+    input.js                 # Minimal input component
+    button.js                # Minimal button component
+    card.js                  # Minimal card primitives
 ```
 
-Or run them all:
+---
 
-```powershell
-py scripts\scrape_all.py
+## Environment Variables
+
+Create `./.env.local`:
+
+```ini
+NEXT_PUBLIC_BACKEND_BASE=http://127.0.0.1:5000
 ```
 
-These write rows to **`raw_offers`** (staging). The runner scripts throttle requests and bypass project pipelines; they insert directly.
+- This is used by app API routes to talk to the Flask backend.
 
-### 4) Resolve to canonical products/offers
+---
 
-```powershell
-py scripts\resolver.py
-# Rebuilds products + offers from raw_offers (deletes and re-inserts in one pass)
-```
+## Core Flows
 
-Optional dry run (no writes):
+### 1) Homepage
 
-```powershell
-py scripts\resolver.py --dry-run
-```
+- Search bar → navigates to `/products?search=<term>`
+- **Categories grid** (A→Z), with **Load More** showing 12 at a time
+- Clicking a category opens `/products?category=<Name>`
 
-### 5) Run the API
+### 2) Products page
 
-```powershell
-set FLASK_APP=api.py
-set FLASK_ENV=development
-py api.py
-# http://127.0.0.1:5000
-```
+- Shows category grid **only when** no search and no category are active.
+- When searching or browsing a category:
+  - Fetches the first page: `/api/products?search=<q>&category=<cat>&page=1&limit=24`
+  - Shows a **Load More** button if `total > items.length`
+  - Clicking **Load More** appends the next page (page 2, 3, …)
 
-The API reads the **canonical** tables (`products`, `offers`, `vendors`) that the resolver builds.
+### 3) Product detail
 
-## Database schema (summary)
+- `/products/[id]` fetches `/api/products/[id]` → backend `/product/<id>`
+- Renders vendor offers (best entry per vendor), with price and **click-through links**
 
-* `raw_offers` — scraper staging
+---
 
-  ```
-  id, vendor, title, price_pounds, url, vendor_sku, category_name, scraped_at, processed
-  ```
-* `vendors` — unique vendor names
+## Image Handling
 
-  ```
-  id, name (unique)
-  ```
-* `products` — canonical products
+- Product list card image box is fixed height `h-48` with `object-contain` to avoid overflow/stretch.
+- Images come from backend (`products.image_url`).
+- If missing, card shows a neutral “No image” placeholder.
 
-  ```
-  id, name, category
-  ```
-* `offers` — vendor offers tied to products
-
-  ```
-  id, product_id, vendor_id, price_pounds, url, created_at
-  ```
-
-### Indexes (created by `scripts/migrate.py`)
-
-* `vendors(name)` unique
-* `products(name)` index
-* `offers(product_id)`, `offers(vendor_id)` indexes
-* `offers(url)` unique (dedupe)
-* `raw_offers(vendor)`, `raw_offers(url)` indexes
-
-## API endpoints (served by `api.py`)
-
-* `GET /products?search=<term>&category=<optional>`
-  Returns **grouped** (unique) products with min price and vendor count. Example:
-
-  ```json
-  [
-    { "id": 123, "name": "Makita DHP484Z 18V Bare Unit", "category": "Cordless Drill",
-      "min_price": 70.50, "vendors_count": 2 }
-  ]
-  ```
-
-  If you add server‑side pagination in the proxy, you can also return `{ items, total, page, limit }` here.
-
-* `GET /products/<id>`
-  Returns one product + all vendor offers (sorted by price):
-
-  ```json
-  { "id": 123, "name": "Makita DHP484Z 18V Bare Unit", "category": "Cordless Drill",
-    "vendors": [ { "vendor": "Toolstation", "price": 70.50, "buy_url": "..." } ] }
-  ```
-
-* `GET /categories`
-  Returns distinct product categories.
-
-## Environment variables
-
-* `DB_PATH` — path to SQLite DB (default: `data/tooltally.db`)
-* `FLASK_ENV` / `FLASK_DEBUG` — standard Flask flags
-* `FLASK_RUN_PORT` — change API port if needed
-
-Example:
-
-```powershell
-set DB_PATH=C:\path\to\tooltally.db
-py scripts\migrate.py
-```
-
-## Common checks
-
-How many products/offers/vendors:
-
-```powershell
-py -c "import sqlite3; con=sqlite3.connect(r'data/tooltally.db'); \
-print('products:', con.execute('select count(*) from products').fetchone()[0]); \
-print('offers:', con.execute('select count(*) from offers').fetchone()[0]); \
-print('vendors:', con.execute('select count(*) from vendors').fetchone()[0]); con.close()"
-```
-
-Products merged across multiple vendors (merge quality):
-
-```powershell
-py -c "import sqlite3; con=sqlite3.connect(r'data/tooltally.db'); \
-print('products with >1 vendor:', con.execute('select count(*) from (select product_id, count(distinct vendor_id) c from offers group by product_id having c>1)').fetchone()[0]); con.close()"
-```
-
-Peek a few merged examples:
-
-```powershell
-py -c "import sqlite3, json; con=sqlite3.connect(r'data/tooltally.db'); con.row_factory=sqlite3.Row; \
-q='''select p.id, p.name, count(distinct o.vendor_id) as vendors, min(o.price_pounds) as min_price\n     from products p join offers o on o.product_id=p.id\n     group by p.id having vendors>1\n     order by vendors desc, min_price asc limit 10''' ; \
-print(json.dumps([dict(r) for r in con.execute(q)], indent=2)); con.close()"
-```
-
-## Resetting (optional)
-
-Soft reset (same effect the resolver has on each run: clears products/offers):
-
-```powershell
-py scripts\reset_canonical.py
-```
-
-Hard reset (also clears vendors; resolver will repopulate):
-
-```powershell
-py scripts\reset_canonical.py --all
-```
-
-Nuclear (also clears raw\_offers; re‑scrape required):
-
-```powershell
-py scripts\reset_canonical.py --all --raw
-```
-
-> If `reset_canonical.py` is not in your repo yet, it’s optional. You can always just run `resolver.py` to rebuild products/offers from `raw_offers`.
+---
 
 ## Troubleshooting
 
-* **`No module named 'scripts'`**: Run from repo root (`tooltally-scrapers`) and call modules like `py scripts\scrape_toolstation.py`.
-* **`offers has no column named created_at`**: Run `py scripts\migrate.py` to add the column.
-* **Scrapy signals/pipelines**: The runner scripts connect signals per crawler and disable project pipelines/telnet.
-* **PowerShell quoting**: Avoid multi‑line `-c` strings; prefer the single‑line commands above.
-* **SQLite CLI missing**: Use the Python one‑liners instead, or install DB Browser for SQLite.
+### “Unexpected token `<` … not valid JSON” in console
 
-## Notes
+This happens when the backend returns an **HTML 404** page and the frontend tries to `res.json()` it.
 
-* The resolver (v2.1) merges across vendors using brand + model/MPN + voltage + kit signature (bare/kit), with brand‑aware regexes (Makita, DeWalt, Bosch, Milwaukee, Einhell, Ryobi, Black+Decker). It’s idempotent—each run clears and rebuilds the canonical tables.
-* WAL mode is enabled for better read/write concurrency with the frontend.
+**Fix**: Run the correct backend:
+
+```powershell
+# in scrapers repo
+py api\compat_search.py
+```
+
+We also hardened the detail proxy (`app/api/products/[id]/route.js`) to return a JSON error object even if the upstream sends HTML.
+
+### 404 detail pages
+
+If `/api/products/[id]` returns 404, ensure the backend route `/product/<id>` exists (only in `compat_search.py`, not `api.py`).
+
+### Multiple lockfiles warning
+
+Delete the extra one:
 
 ```
+C:\Users\tyler\ToolTally\tooltally-frontend\package-lock.json
 ```
+
+---
+
+## Useful Dev Commands
+
+```bash
+# Lint (if configured)
+npm run lint
+
+# Build & start (production)
+npm run build
+npm start
+```
+
+---
+
+## License
+
+MIT (project-specific details may vary in the root LICENSE).
