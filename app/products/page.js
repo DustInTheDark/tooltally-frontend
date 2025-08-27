@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Search } from 'lucide-react';
 
 function currency(v) {
@@ -50,7 +50,7 @@ export default function ProductsPage() {
   const [cats, setCats] = React.useState([]);
   const [catsLoading, setCatsLoading] = React.useState(true);
 
-  // fetch categories once (even if we don't render them)
+  // fetch categories once (even if we don't always render them)
   React.useEffect(() => {
     (async () => {
       try {
@@ -90,7 +90,6 @@ export default function ProductsPage() {
     const url = new URL(window.location.href);
     const params = new URLSearchParams(url.search);
     if (term) params.set('search', term); else params.delete('search');
-    // keep current category if any
     router.push(`/products?${params.toString()}`);
   };
 
@@ -101,7 +100,7 @@ export default function ProductsPage() {
     router.push(`/products?${params.toString()}`);
   };
 
-  const showCategories = !q && !cat; // <- hide categories when searching OR category selected
+  const showCategories = !q && !cat; // hide categories when searching OR a category is selected
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -124,22 +123,14 @@ export default function ProductsPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-semibold text-slate-900">Categories</h2>
-            <button
-              className="text-sm text-slate-600 underline"
-              onClick={() => onPickCategory('', '')}
-              disabled
-              title="No category filter active"
-            >
-              Clear filter
-            </button>
           </div>
 
           {catsLoading ? (
             <p className="text-slate-500">Loading categories…</p>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-              {cats.map((c, idx) => {
-                return (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {cats.slice(0, visibleCount).map((c, idx) => (
                   <button
                     key={`${c.slug}-${idx}`}
                     onClick={() => onPickCategory(c.slug, c.name)}
@@ -152,9 +143,20 @@ export default function ProductsPage() {
                       </CardContent>
                     </Card>
                   </button>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+
+              {visibleCount < cats.length && (
+                <div className="flex justify-center mt-4">
+                  <Button
+                    className="px-6 py-2 bg-slate-900 hover:bg-slate-800"
+                    onClick={() => setVisibleCount((prev) => prev + 12)}
+                  >
+                    Load More
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
@@ -173,9 +175,21 @@ export default function ProductsPage() {
           <Link key={it.id} href={`/products/${it.id}`} className="block">
             <Card className="border-2 border-slate-100 hover:border-slate-200 transition">
               <CardContent className="p-4">
-                <div className="aspect-[4/3] w-full bg-slate-50 rounded-lg mb-3 overflow-hidden flex items-center justify-center">
-                  <span className="text-slate-300 text-sm">No image</span>
+                {/* Image box: fixed height, contain, never overflow */}
+                <div className="w-full h-48 rounded-lg mb-3 bg-white border border-slate-100 overflow-hidden flex items-center justify-center">
+                  {it.image_url ? (
+                    <img
+                      src={it.image_url}
+                      alt={it.title || 'Product image'}
+                      className="max-w-full max-h-full object-contain"
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <span className="text-slate-300 text-sm">No image</span>
+                  )}
                 </div>
+
                 <p className="text-xs uppercase tracking-wide text-slate-500">{it.brand || ''}</p>
                 <h3 className="font-semibold text-slate-900 line-clamp-2">{it.title}</h3>
                 <div className="flex items-center justify-between mt-3">
@@ -191,17 +205,6 @@ export default function ProductsPage() {
           </Link>
         ))}
       </div>
-
-      {!loading && total > items.length && (
-        <div className="text-center mt-6">
-          <Button
-            variant="outline"
-            onClick={() => router.push(`/products?search=${encodeURIComponent(q)}&category=${encodeURIComponent(cat)}&page=2`)}
-          >
-            Load More
-          </Button>
-        </div>
-      )}
     </div>
   );
 }
